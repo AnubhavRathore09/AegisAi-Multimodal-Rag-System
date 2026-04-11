@@ -41,7 +41,7 @@ class Settings:
 
     def validate(self):
         if not (self.GROQ_API_KEY or self.OPENAI_API_KEY):
-            raise EnvironmentError("No LLM API key found")
+            print("WARNING: No LLM API key found. LLM features will be limited until you set GROQ_API_KEY or OPENAI_API_KEY.")
         return self
 
 settings = Settings().validate()

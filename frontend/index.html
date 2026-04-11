@@ -4,7 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aegis AI</title>
-  <link rel="stylesheet" href="style.css" />
+  <script>
+    if (window.location.protocol === 'file:') {
+      window.location.replace('http://127.0.0.1:8000');
+    }
+  </script>
+  <link rel="stylesheet" id="appStylesheet" href="./style.css?v=20260411-1207" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -61,6 +66,7 @@
         <span id="loginBtnText">Sign In</span>
         <div class="btn-spinner" id="loginSpinner" style="display:none"></div>
       </button>
+      <button class="auth-link-btn" onclick="openForgotPasswordModal()">Forgot password?</button>
       <p class="auth-demo">Demo: <b>demo@aegis.ai / demo123</b> &nbsp;|&nbsp; Admin: <b>admin@aegis.ai / admin123</b></p>
     </div>
 
@@ -156,16 +162,12 @@
         <span>No conversations yet</span>
       </div>
       <div id="historyList"></div>
+      <div class="history-more-wrap" id="historyMoreWrap" style="display:none">
+        <button class="history-more-btn" id="historyMoreBtn" onclick="toggleHistoryExpanded()">Show more</button>
+      </div>
     </div>
 
     <div class="sidebar-footer">
-      <button class="footer-btn" onclick="exportChat()" title="Export chat">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span class="footer-btn-text">Export Chat</span>
-      </button>
-
       <div class="user-profile" id="userProfile" onclick="toggleProfileMenu()">
         <div class="user-avatar" id="userAvatar">A</div>
         <div class="user-info">
@@ -178,22 +180,46 @@
       </div>
 
       <div class="profile-menu" id="profileMenu" style="display:none">
+        <div class="profile-menu-account">
+          <div class="user-avatar profile-menu-avatar" id="profileMenuAvatar">AR</div>
+          <div class="profile-menu-account-info">
+            <div class="profile-menu-account-name" id="profileMenuName">User</div>
+          </div>
+        </div>
+        <button class="profile-menu-item" onclick="switchAccount()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Add another account
+        </button>
+        <div class="profile-menu-divider"></div>
+        <button class="profile-menu-item" onclick="openSettingsModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7z" stroke="currentColor" stroke-width="2"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0A1.65 1.65 0 0 0 10.5 3.09V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Settings
+        </button>
         <button class="profile-menu-item" onclick="openProfileModal()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
             <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/>
             <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
-          View Profile
+          Profile
         </button>
-        <button class="profile-menu-item" onclick="toggleTheme()">
-          <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2"/>
+        <button class="profile-menu-item" onclick="openSettingsModal('personalization')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M12 3l2.7 5.47L21 9.27l-4.5 4.39L17.54 21 12 18.27 6.46 21l1.04-7.34L3 9.27l6.3-.8L12 3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
           </svg>
-          <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" style="display:none">
-            <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
-            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          Personalization
+        </button>
+        <button class="profile-menu-item" onclick="openHelpModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+            <path d="M9.09 9a3 3 0 1 1 5.82 1c0 2-3 3-3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 17h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
-          <span id="themeLabel">Dark mode</span>
+          Help
         </button>
         <div class="profile-menu-divider"></div>
         <button class="profile-menu-item danger" onclick="doLogout()">
@@ -215,10 +241,10 @@
         </svg>
       </button>
       <div class="topbar-center">
-        <div class="status-pill">
+        <button class="status-pill clickable-pill" onclick="openHelpModal()">
           <span class="status-dot"></span>
           <span id="topbarStatus">Aegis AI · v2.1</span>
-        </div>
+        </button>
       </div>
       <div class="topbar-right">
         <button class="icon-btn stream-toggle" id="streamToggle" onclick="toggleStreamMode()" title="Toggle streaming">
@@ -226,11 +252,25 @@
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-        <button class="icon-btn" title="Delete chat" id="deleteChatBtn" onclick="deleteCurrentChat()" style="display:none">
+        <button class="icon-btn" title="Share chat" id="shareChatBtn" onclick="openCurrentChatShare()" style="display:none">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M7 12V5m0 0l-3 3m3-3l3 3M5 14v3a2 2 0 002 2h10a2 2 0 002-2v-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+        <button class="icon-btn" title="Chat options" onclick="toggleChatMenu()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="5" cy="12" r="1.8" fill="currentColor"/>
+            <circle cx="12" cy="12" r="1.8" fill="currentColor"/>
+            <circle cx="19" cy="12" r="1.8" fill="currentColor"/>
+          </svg>
+        </button>
+      <div class="chat-menu" id="chatMenu" style="display:none">
+          <button class="chat-menu-item" onclick="showToast('Group chat is not available yet.')">Start a group chat</button>
+          <button class="chat-menu-item" onclick="togglePinCurrentChat()">Pin chat</button>
+          <button class="chat-menu-item" onclick="downloadCurrentChat()">Download chat</button>
+          <button class="chat-menu-item" onclick="archiveCurrentChat()">Archive</button>
+          <button class="chat-menu-item danger" onclick="deleteCurrentChat()">Delete</button>
+        </div>
       </div>
     </header>
 
@@ -278,10 +318,17 @@
       <div class="voice-transcript" id="voiceTranscript" style="display:none">
         <div class="voice-recording-indicator">
           <span class="rec-dot"></span>
-          <span>Recording…</span>
+          <span id="voiceStatus">Listening</span>
+        </div>
+        <div class="voice-wave" aria-hidden="true">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
         </div>
         <span id="transcriptText">Speak now…</span>
-        <button onclick="cancelVoice()" style="margin-left:auto;color:var(--err);font-size:0.8rem;padding:2px 8px">✕ Cancel</button>
+        <div class="voice-actions">
+          <button class="voice-action-btn ghost" onclick="cancelVoice()">Cancel</button>
+          <button class="voice-action-btn primary" onclick="finishVoiceInput()">Send</button>
+        </div>
       </div>
 
       <div class="input-wrap" id="inputWrap">
@@ -323,6 +370,128 @@
   </div>
 
   <div class="mob-overlay" id="mobOverlay" onclick="closeMobileSidebar()"></div>
+</div>
+
+<div class="modal-overlay" id="settingsModalOverlay" style="display:none" onclick="closeSettingsModal()">
+  <div class="modal-card settings-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Settings</h3>
+      <button class="modal-close" onclick="closeSettingsModal()">✕</button>
+    </div>
+    <div class="settings-section">
+      <div class="settings-title">Assistant behavior</div>
+      <div class="form-group">
+        <label>Assistant mode</label>
+        <select id="settingsRoleMode"></select>
+      </div>
+      <div class="form-group">
+        <label>Response style</label>
+        <select id="settingsPromptTemplate"></select>
+      </div>
+      <div class="form-group">
+        <label>Theme</label>
+        <select id="settingsTheme">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-title">Voice</div>
+      <div class="form-group">
+        <label>Voice profile</label>
+        <select id="settingsVoiceProfile">
+          <option value="auto">Auto clear voice</option>
+          <option value="bilingual">Hindi + English + Hinglish</option>
+          <option value="english">English focused</option>
+          <option value="hindi">Hindi focused</option>
+          <option value="default">Browser default</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Recognition language</label>
+        <select id="settingsRecognitionLanguage">
+          <option value="auto">Auto</option>
+          <option value="en-IN">English (India)</option>
+          <option value="hi-IN">Hindi</option>
+          <option value="en-US">English (US)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Voice assistant mode</label>
+        <select id="settingsVoiceAssistant">
+          <option value="browser">Browser speech</option>
+          <option value="guided">Guided listen + speak</option>
+        </select>
+      </div>
+      <p class="settings-note">Browser voice quality depends on the voices installed in your device and browser.</p>
+    </div>
+    <div class="settings-section">
+      <div class="settings-title">Archived chats</div>
+      <div class="settings-note">Restore archived chats back into your main history.</div>
+      <div id="archivedChatsList" class="archived-chats-list"></div>
+    </div>
+    <button class="auth-submit" onclick="saveSettings()">Save Settings</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="helpModalOverlay" style="display:none" onclick="closeHelpModal()">
+  <div class="modal-card help-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>About Aegis AI</h3>
+      <button class="modal-close" onclick="closeHelpModal()">✕</button>
+    </div>
+    <div class="help-content">
+      <h4>What Aegis AI does</h4>
+      <p>Aegis AI is a retrieval-augmented assistant that combines chat, file understanding, OCR, citations, session memory, and streaming responses.</p>
+      <h4>Core features</h4>
+      <ul>
+        <li>Multi-document understanding with hybrid retrieval</li>
+        <li>Citations and source-aware answers</li>
+        <li>Streaming responses with follow-up memory</li>
+        <li>Document and image question answering</li>
+        <li>Safe query correction and hallucination control</li>
+        <li>Voice input and voice playback</li>
+      </ul>
+      <h4>How to use it</h4>
+      <ul>
+        <li>Type a normal question to chat directly.</li>
+        <li>Upload a document or image, then ask things like “what is written inside this?”.</li>
+        <li>Use streaming for real-time responses.</li>
+        <li>Open Settings to choose assistant style and voice behavior.</li>
+      </ul>
+      <h4>How it works</h4>
+      <p>Your query is cleaned, matched with uploaded content through hybrid retrieval, then passed to the language model with citations and session history when relevant.</p>
+      <h4>Accuracy</h4>
+      <p>Aegis AI is strongest when grounded in uploaded files or retrieved context. It reduces hallucinations, but no AI system is perfect, so important answers should still be verified.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD MODAL -->
+<div class="modal-overlay" id="forgotPasswordOverlay" style="display:none" onclick="closeForgotPasswordModal()">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Recover Account</h3>
+      <button class="modal-close" onclick="closeForgotPasswordModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="forgotEmail" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label>New Password</label>
+        <input type="password" id="forgotPassword" placeholder="Enter new password" />
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" id="forgotPasswordConfirm" placeholder="Confirm new password" />
+      </div>
+      <div class="auth-error" id="forgotError"></div>
+      <button class="auth-submit" onclick="recoverPassword()">Reset Password</button>
+    </div>
+  </div>
 </div>
 
 <!-- PROFILE MODAL -->
@@ -375,10 +544,31 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
         X / Twitter
       </button>
-      <button class="share-btn telegram" onclick="shareAction('telegram')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
-        Telegram
+      <button class="share-btn linkedin" onclick="shareAction('linkedin')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5C4.98 4.88 3.86 6 2.48 6S0 4.88 0 3.5 1.12 1 2.48 1s2.5 1.12 2.5 2.5zM.5 8h4V24h-4V8zm7 0h3.83v2.18h.06C11.92 8.96 13.56 8 15.8 8 20.3 8 21 10.97 21 14.84V24h-4v-8.14c0-1.94-.03-4.44-2.71-4.44-2.72 0-3.14 2.12-3.14 4.3V24h-4V8z"/></svg>
+        LinkedIn
       </button>
+      <button class="share-btn reddit" onclick="shareAction('reddit')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 11.5c0-1.38-1.12-2.5-2.5-2.5-.68 0-1.29.28-1.74.72-1.71-1.17-4.04-1.94-6.64-2.03l1.12-3.53 3.06.72a1.75 1.75 0 1 0 .4-1.54l-3.75-.88a.75.75 0 0 0-.9.5l-1.34 4.2c-2.72.03-5.17.8-6.95 2-.46-.46-1.09-.74-1.79-.74C1.12 9 0 10.12 0 11.5c0 1 .59 1.86 1.44 2.26-.05.3-.08.61-.08.92 0 3.31 3.8 6 8.5 6s8.5-2.69 8.5-6c0-.3-.02-.6-.07-.88A2.49 2.49 0 0 0 24 11.5zM6.5 14.5A1.5 1.5 0 1 1 8 13a1.5 1.5 0 0 1-1.5 1.5zm8.9 3.63c-.93.93-2.72 1-3.4 1-.69 0-2.48-.07-3.41-1a.62.62 0 0 1 .88-.88c.54.54 1.74.64 2.53.64.79 0 1.99-.1 2.53-.64a.62.62 0 1 1 .88.88zm-.16-3.63a1.5 1.5 0 1 1 1.5-1.5 1.5 1.5 0 0 1-1.5 1.5z"/></svg>
+        Reddit
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteChatOverlay" style="display:none" onclick="closeDeleteChatModal()">
+  <div class="modal-card delete-chat-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Delete chat?</h3>
+      <button class="modal-close" onclick="closeDeleteChatModal()">✕</button>
+    </div>
+    <div class="delete-chat-copy">
+      <p id="deleteChatText">This will delete this conversation.</p>
+      <p class="delete-chat-sub">This action removes the chat from your visible history.</p>
+    </div>
+    <div class="delete-chat-actions">
+      <button class="voice-action-btn ghost" onclick="closeDeleteChatModal()">Cancel</button>
+      <button class="voice-action-btn danger" onclick="confirmDeleteCurrentChat()">Delete</button>
     </div>
   </div>
 </div>
@@ -404,7 +594,30 @@
   </div>
 </div>
 
-<script src="script.js"></script>
+<div class="modal-overlay" id="imagePreviewOverlay" style="display:none" onclick="closeImagePreview()">
+  <div class="modal-card image-preview-modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Image Preview</h3>
+      <button class="modal-close" onclick="closeImagePreview()">✕</button>
+    </div>
+    <div class="image-preview-body">
+      <img id="imagePreviewLarge" class="image-preview-large" src="" alt="Uploaded preview" />
+    </div>
+  </div>
+</div>
+
+<script>
+  (function applyFrontendAssetPaths() {
+    const version = '20260411-1207';
+    const base = window.location.protocol === 'file:' ? '.' : '/frontend';
+    const stylesheet = document.getElementById('appStylesheet');
+    if (stylesheet) {
+      stylesheet.href = `${base}/style.css?v=${version}`;
+    }
+    const script = document.createElement('script');
+    script.src = `${base}/script.js?v=${version}`;
+    document.body.appendChild(script);
+  })();
+</script>
 </body>
 </html>
-

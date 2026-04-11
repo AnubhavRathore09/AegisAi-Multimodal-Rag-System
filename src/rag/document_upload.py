@@ -4,7 +4,11 @@ import tempfile
 import base64
 import hashlib
 import numpy as np
-import faiss
+
+try:
+    import faiss  # type: ignore
+except Exception:
+    faiss = None
 
 from fastapi import UploadFile, HTTPException
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -19,7 +23,7 @@ from src.core.logger import get_logger
 logger = get_logger(__name__)
 
 DIMENSION = 384
-faiss_index = faiss.IndexFlatL2(DIMENSION)
+faiss_index = faiss.IndexFlatL2(DIMENSION) if faiss is not None else None
 
 doc_store = []
 
@@ -100,7 +104,7 @@ def store_chunks(chunks, filename, file_hash):
         records.append(record)
         doc_store.append(record)
 
-    if vectors:
+    if vectors and faiss_index is not None:
         vectors = np.array(vectors).astype("float32")
         faiss_index.add(vectors)
 

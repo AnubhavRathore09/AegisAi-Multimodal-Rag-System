@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Form
 import shutil
 import os
 from pymongo import MongoClient
@@ -21,24 +21,28 @@ def track_event(event_type, user="guest"):
 router = APIRouter()
 
 @router.post("/voice-chat")
-async def voice_chat(file: UploadFile = File(...)):
+async def voice_chat(
+    file: UploadFile | None = File(default=None),
+    audio: UploadFile | None = File(default=None),
+    language: str | None = Form(default=None),
+):
     try:
         track_event("voice_used", "guest")
 
-        temp_path = f"temp_{file.filename}"
+        incoming = audio or file
+        if incoming is None:
+            return {"error": "No audio file provided"}
+
+        temp_path = f"temp_{incoming.filename}"
         with open(temp_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            shutil.copyfileobj(incoming.file, buffer)
 
         user_text = transcribe_audio(temp_path)
-        ai_response = get_llm_response(user_text)
-        audio_path = generate_speech(ai_response)
-
         os.remove(temp_path)
 
         return {
-            "user_text": user_text,
-            "ai_text": ai_response,
-            "audio_url": audio_path
+            "text": user_text,
+            "language": language or "auto",
         }
 
     except Exception as e:

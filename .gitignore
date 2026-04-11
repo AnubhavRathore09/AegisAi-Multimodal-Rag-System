@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Python
 __pycache__/
 *.pyc
@@ -61,3 +62,52 @@ htmlcov/
 # Misc
 *.bak
 *.old
+=======
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+.env
+.env.local
+.env.*.local
+*.log
+logs/
+storage/app.log
+build/
+dist/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.DS_Store
+.vscode/
+.idea/
+node_modules/
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+storage/uploads/
+storage/faiss/
+storage/cache/
+uploads/
+*.sqlite3
+*.db
+dump.rdb
+*.tif
+*.tiff
+frontend/.env
+frontend/.env.local
+Thumbs.db
+desktop.ini
+>>>>>>> 5b6b3f3 (feat: upgrade to LLM-based adaptive multimodal RAG system with evaluation and deployment support)
+
