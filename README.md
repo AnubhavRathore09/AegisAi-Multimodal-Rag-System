@@ -53,15 +53,20 @@ AegisAI bridges the gap between static chatbots and truly intelligent AI systems
 ## 🏗️ Architecture
 
 ```
-User Query
-   ↓
-Query Router
-   ├── direct → LLM
-   ├── rag → Retriever → Context → LLM
-   ├── memory → History → LLM
-   └── multimodal → OCR / Voice → Router → LLM
-   ↓
-Response + Logging + Memory + Cache
+User Input (Text / Image / Voice)
+↓
+LLM Router (Intent + Confidence)
+↓
+| Direct | RAG | Memory | Multimodal |
+
+↓ ↓ ↓ ↓
+LLM Retriever Memory OCR/Voice
+↓
+Context Injection
+↓
+LLM
+↓
+Response + Logs + Cache + Evaluation
 ```
 
 ---
@@ -77,6 +82,8 @@ Response + Logging + Memory + Cache
 - Tesseract OCR
 - Uvicorn
 - NumPy
+- HTML / CSS / JavaScript
+- PyPDF
 
 ---
 
@@ -96,6 +103,7 @@ AegisAI/
 │   └── services/
 │       ├── rag.py
 │       ├── router.py
+│       ├── llm_router.py
 │       ├── query_processing.py
 │       ├── vector_store.py
 │       ├── memory.py
@@ -108,8 +116,13 @@ AegisAI/
 │       ├── rate_limiter.py
 │       └── logging_service.py
 ├── frontend/
-├── storage/
+├── data/
+├── notebooks/
+├── result/
+├── tests/
 ├── requirements.txt
+├── Dockerfile
+├── .env.example
 └── README.md
 ```
 
@@ -200,6 +213,25 @@ Run batch evaluation:
 ```bash
 python3 -m app.evaluate_batch eval_samples.json
 ```
+
+---
+## 🌐 Frontend Features
+- Chat bubble UI
+- Streaming responses
+- Upload preview (image / PDF)
+- Loading indicators
+- Clean responsive interface
+
+---
+
+## 🔍 Explainability
+
+Each response includes internal reasoning:
+- Selected route
+- Confidence score
+- Routing reason
+- Retrieved documents + scores
+- Fallback usage
 
 ---
 
