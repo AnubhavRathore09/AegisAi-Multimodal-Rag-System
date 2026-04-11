@@ -7,14 +7,28 @@
 ![Redis](https://img.shields.io/badge/Redis-Caching-red)
 ![Deploy](https://img.shields.io/badge/Deploy-Production-green)
 
-A production-grade adaptive multimodal Retrieval-Augmented Generation system designed for intelligent, context-aware, and scalable AI applications.
+A production-grade **Adaptive Multimodal Retrieval-Augmented Generation (RAG)** system designed for intelligent, context-aware, hallucination-resistant, and scalable GenAI applications.
+
 
 ---
 
 ## 🧠 Overview
 
-AegisAI is an advanced GenAI system that dynamically selects the optimal processing pipeline based on user intent. It combines retrieval, memory, and direct LLM reasoning to deliver accurate, grounded, and efficient responses across multiple modalities.
+AegisAI is a production-grade **Adaptive Multimodal Retrieval-Augmented Generation (RAG)** system designed to intelligently handle diverse user queries across text, documents, images, and voice.
 
+Unlike traditional RAG systems, AegisAI dynamically analyzes user intent and selects the most optimal processing path in real time — whether it requires direct LLM reasoning, knowledge retrieval, conversational memory, or multimodal understanding.
+
+The system integrates:
+
+- 🔹 Adaptive query routing for intelligent decision-making  
+- 🔹 Hybrid retrieval (FAISS + MongoDB) for grounded responses  
+- 🔹 Memory-aware context injection for conversational continuity  
+- 🔹 Multimodal pipelines (OCR + speech-to-text) for rich input handling  
+- 🔹 Confidence-based fallback to minimize hallucinations  
+
+This architecture ensures that responses are not only accurate and context-aware but also efficient and scalable for real-world production use.
+
+AegisAI bridges the gap between static chatbots and truly intelligent AI systems by enabling dynamic reasoning, contextual awareness, and multimodal interaction within a unified pipeline.
 ---
 
 ## ✨ Features
@@ -26,6 +40,7 @@ AegisAI is an advanced GenAI system that dynamically selects the optimal process
 - OCR pipeline for image understanding
 - Voice-to-text processing
 - Query correction and rewriting
+- Hallucination reduction using grounded responses
 - Streaming chat responses
 - Redis-based caching with fallback
 - Evaluation pipeline for RAG quality
@@ -175,6 +190,10 @@ Metrics supported:
 - Recall
 - Context relevance
 - Answer correctness
+- Confidence Threshold: 0.75  
+- Cache Hit: False  
+- Latency: 120ms  
+
 
 Run batch evaluation:
 
@@ -225,6 +244,44 @@ The system dynamically selects execution flow:
 - Multi-user isolation
 
 ---
+
+## 🛡️ Hallucination Control
+
+- Confidence-based retrieval filtering  
+- Context grounding using FAISS  
+- Smart fallback to LLM  
+- Query rewriting  
+- Memory-aware responses 
+
+
+## 📊 Sample Results
+
+User Query: What is artificial intelligence?  
+Route: direct  
+Response: AI is the simulation of human intelligence in machines.  
+
+---
+
+User Query: Explain machine learning from document  
+Route: rag  
+Retrieved Docs:  
+- doc1.txt (0.89)  
+- doc2.txt (0.84)  
+
+Response: Machine learning is a subset of AI that learns from data.  
+
+---
+
+User Query: What did I ask before?  
+Route: memory  
+Response: You previously asked about machine learning.  
+
+---
+
+User Query: Analyze this image  
+Route: multimodal  
+OCR Output: "Deep learning model"  
+Response: The image contains deep learning-related text.
 
 ## 👨‍💻 Author
 
