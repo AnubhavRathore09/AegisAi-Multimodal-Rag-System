@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Database
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# Cache
+.cache/
+
+# Uploads / Storage
+uploads/
+storage/
+data/
+
+# FAISS index
+faiss_index/
+
+# Temporary files
+*.tmp
+*.swp
+
+# Node (frontend)
+node_modules/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Misc
+*.bak
+*.old
