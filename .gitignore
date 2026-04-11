@@ -111,3 +111,5 @@ Thumbs.db
 desktop.ini
 >>>>>>> 5b6b3f3 (feat: upgrade to LLM-based adaptive multimodal RAG system with evaluation and deployment support)
 
+__pycache__/
+*.pyc
