@@ -7,8 +7,7 @@
 ![Redis](https://img.shields.io/badge/Redis-Caching-red)
 ![Deploy](https://img.shields.io/badge/Deploy-Production-green)
 
-A production-grade **Adaptive Multimodal Retrieval-Augmented Generation (RAG)** system designed for intelligent, context-aware, hallucination-resistant, and scalable GenAI applications.
-
+AegisAI is a production-grade Adaptive Multimodal RAG system that intelligently routes user queries across text, images, documents, and voice to deliver context-aware, hallucination-resistant responses using dynamic retrieval pipelines.
 
 ---
 
@@ -33,8 +32,10 @@ AegisAI bridges the gap between static chatbots and truly intelligent AI systems
 
 ## ✨ Features
 
-- Adaptive query routing: direct, rag, memory, multimodal
-- Multimodal input support: text, documents, images, voice
+- Adaptive Query Routing Engine  
+  Dynamically selects optimal execution path (Direct / RAG / Memory / Multimodal) based on intent classification and confidence scoring
+- Multimodal Input Support  
+  Handles text, documents, images, and voice seamlessly
 - FAISS-based retrieval with confidence-aware fallback
 - MongoDB-backed conversational memory
 - OCR pipeline for image understanding
@@ -49,6 +50,40 @@ AegisAI bridges the gap between static chatbots and truly intelligent AI systems
 - Async-ready FastAPI backend
 
 ---
+
+## ❗ Problem
+Traditional LLMs suffer from hallucinations, lack real-time knowledge, and fail to handle multimodal inputs effectively.
+
+## ✅ Solution
+AegisAI introduces an adaptive routing-based RAG architecture that dynamically selects the best reasoning pipeline, integrates retrieval grounding, and supports multimodal understanding.
+
+---
+
+## 🚀 Why AegisAI Stands Out
+- Adaptive routing (not static RAG)
+- Multimodal + memory unified system
+- Explainable AI responses
+- Production-ready architecture
+
+---
+
+## 🎥 Demo
+
+### 💬 Chat Interface
+<img width="1440" height="819" alt="Screenshot 2026-04-12 at 8 30 29 PM" src="https://github.com/user-attachments/assets/418d8729-82b5-4515-992b-5f3949d7e8f0" />
+
+
+### 📂 File Upload & Processing
+<img width="1440" height="818" alt="Screenshot 2026-04-12 at 8 41 30 PM" src="https://github.com/user-attachments/assets/73c185a8-6a8c-4919-90b4-59ac155cffdf" />
+
+
+### 🧠 Explainability Panel
+<img width="1440" height="818" alt="Screenshot 2026-04-12 at 8 42 09 PM" src="https://github.com/user-attachments/assets/0effe80a-6eee-4f87-b43a-6f68bad0d9a0" />
+
+### 🔐 Authentication System
+<img width="1437" height="812" alt="Screenshot 2026-04-12 at 8 29 58 PM" src="https://github.com/user-attachments/assets/58ba69b9-369a-4a10-baa0-7dcd53f4c2f4" />
+
+
 
 ## 🏗️ Architecture
 
@@ -166,7 +201,7 @@ ROUTER_LLM_CONFIDENCE_THRESHOLD=0.55
 ## 🚀 Running the Application
 
 ```bash
-python3 -m uvicorn src.main:app --reload
+python3 -m uvicorn app.main:app --reload
 ```
 
 Open:
@@ -203,10 +238,9 @@ Metrics supported:
 - Recall
 - Context relevance
 - Answer correctness
-- Confidence Threshold: 0.75  
-- Cache Hit: False  
-- Latency: 120ms  
-
+⚡ Avg Latency: ~120ms  
+🎯 Confidence Threshold: 0.75  
+📊 Retrieval Accuracy: High (via hybrid search)
 
 Run batch evaluation:
 
