@@ -303,7 +303,14 @@ ul { list-style: none; }
 .history-more-btn { width: 100%; padding: 9px 10px; border-radius: var(--r-sm); border: 1px solid var(--border2); color: var(--tx2); background: var(--bg2); font-size: 0.8rem; transition: all var(--t); }
 .history-more-btn:hover { color: var(--tx1); border-color: var(--acc); background: var(--acc-bg); }
 
-.sidebar-footer { border-top: 1px solid var(--border); padding-top: 8px; display: flex; flex-direction: column; gap: 2px; }
+.sidebar-footer { 
+  border-top: 1px solid var(--border); 
+  padding-top: 8px; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 2px; 
+  margin-top: auto;
+}
 .user-profile { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: var(--r-sm); cursor: pointer; transition: all var(--t); overflow: hidden; }
 .user-profile:hover { background: var(--bg4); }
 .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--acc), var(--acc2)); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 0.88rem; flex-shrink: 0; }
