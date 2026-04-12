@@ -1,8 +1,6 @@
 'use strict';
 
-const API = window.location.protocol === 'file:'
-  ? 'http://127.0.0.1:8000'
-  : window.location.origin;
+const API = "https://aegisai-multimodal-rag-system.onrender.com";
 const ADMIN_TOKEN = 'anubhav_admin_secure';
 
 const MAX_FILE_SIZE_MB = 20;
@@ -51,6 +49,7 @@ const state = {
   voiceAssistantMode: 'browser',
   voiceRetryCount: 0,
   voiceSubmitting: false,
+  dragDepth: 0,
 };
 
 const $ = id => document.getElementById(id);
@@ -217,6 +216,92 @@ function updateSpeakButtons() {
   });
 }
 
+function setComposerDragActive(active) {
+  const inputWrap = $('inputWrap');
+  if (!inputWrap) return;
+  inputWrap.classList.toggle('drag-active', !!active);
+}
+
+async function processSelectedFiles(files) {
+  for (const file of files) {
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      showToast(`File too large: ${file.name} (max ${MAX_FILE_SIZE_MB}MB)`);
+      continue;
+    }
+    const isImage = IMAGE_TYPES.includes(file.type);
+    const isDoc = DOC_TYPES.includes(file.type) || file.name.toLowerCase().endsWith('.txt');
+    if (!isImage && !isDoc) {
+      showToast(`Unsupported file type: ${file.name}`);
+      continue;
+    }
+    const entry = {
+      file,
+      type: isImage ? 'image' : 'doc',
+      base64: null,
+      uploaded: false,
+      previewUrl: null,
+      id: Date.now() + Math.random(),
+    };
+    state.pendingFiles.push(entry);
+    addAttachPreview(entry);
+    if (isImage) {
+      try {
+        entry.base64 = await fileToBase64(file);
+        entry.previewUrl = `data:${file.type};base64,${entry.base64}`;
+        updateAttachPreview(entry, 'done');
+      } catch (err) {
+        updateAttachPreview(entry, 'err');
+        showToast(`Failed to process image: ${file.name}`);
+      }
+    } else {
+      await uploadDocToBackend(entry);
+    }
+  }
+  const ab = $('attachmentsBar');
+  if (ab) ab.style.display = state.pendingFiles.length ? 'block' : 'none';
+}
+
+function initComposerDragDrop() {
+  const inputWrap = $('inputWrap');
+  if (!inputWrap) return;
+
+  document.addEventListener('dragover', event => {
+    event.preventDefault();
+  });
+
+  document.addEventListener('drop', event => {
+    if (!inputWrap.contains(event.target)) event.preventDefault();
+  });
+
+  ['dragenter', 'dragover'].forEach(type => {
+    inputWrap.addEventListener(type, event => {
+      event.preventDefault();
+      event.stopPropagation();
+      state.dragDepth += 1;
+      setComposerDragActive(true);
+    });
+  });
+
+  ['dragleave', 'dragend'].forEach(type => {
+    inputWrap.addEventListener(type, event => {
+      event.preventDefault();
+      event.stopPropagation();
+      state.dragDepth = Math.max(0, state.dragDepth - 1);
+      if (state.dragDepth === 0) setComposerDragActive(false);
+    });
+  });
+
+  inputWrap.addEventListener('drop', async event => {
+    event.preventDefault();
+    event.stopPropagation();
+    state.dragDepth = 0;
+    setComposerDragActive(false);
+    const dropped = Array.from(event.dataTransfer?.files || []);
+    if (!dropped.length) return;
+    await processSelectedFiles(dropped);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadSpeechVoices();
   if (window.speechSynthesis) {
@@ -225,6 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initParticles();
   initMarked();
   loadTheme();
+  initComposerDragDrop();
 
   const launchParams = getLaunchParams();
   const autoGuest = launchParams.get('auto_guest') === '1';
@@ -1314,43 +1400,8 @@ async function deleteSession(e, id) {
 
 async function handleFiles(input) {
   const files = Array.from(input.files || []);
-  for (const file of files) {
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      showToast(`File too large: ${file.name} (max ${MAX_FILE_SIZE_MB}MB)`);
-      continue;
-    }
-    const isImage = IMAGE_TYPES.includes(file.type);
-    const isDoc   = DOC_TYPES.includes(file.type) || file.name.toLowerCase().endsWith('.txt');
-    if (!isImage && !isDoc) {
-      showToast(`Unsupported file type: ${file.name}`);
-      continue;
-    }
-    const entry = {
-      file,
-      type:       isImage ? 'image' : 'doc',
-      base64:     null,
-      uploaded:   false,
-      previewUrl: null,
-      id:         Date.now() + Math.random(),
-    };
-    state.pendingFiles.push(entry);
-    addAttachPreview(entry);
-    if (isImage) {
-      try {
-        entry.base64      = await fileToBase64(file);
-        entry.previewUrl  = `data:${file.type};base64,${entry.base64}`;
-        updateAttachPreview(entry, 'done');
-      } catch (err) {
-        updateAttachPreview(entry, 'err');
-        showToast(`Failed to process image: ${file.name}`);
-      }
-    } else {
-      await uploadDocToBackend(entry);
-    }
-  }
+  await processSelectedFiles(files);
   input.value = '';
-  const ab = document.getElementById('attachmentsBar');
-  if (ab) ab.style.display = state.pendingFiles.length ? 'block' : 'none';
 }
 
 function addAttachPreview(entry) {

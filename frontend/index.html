@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
@@ -331,6 +332,12 @@
       </div>
 
       <div class="input-wrap" id="inputWrap">
+        <div class="drop-overlay" id="dropOverlay" aria-hidden="true">
+          <div class="drop-overlay-content">
+            
+          </div>
+        </div>
+
         <div class="input-row">
           <label class="attach-btn" title="Attach PDF, TXT, or Image">
             <input type="file" id="fileInput" accept=".pdf,.txt,.png,.jpg,.jpeg,.webp" multiple style="display:none" onchange="handleFiles(this)" />
