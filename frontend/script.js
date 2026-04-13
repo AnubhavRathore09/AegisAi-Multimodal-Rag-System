@@ -58,6 +58,11 @@ const state = {
 
 const $ = id => document.getElementById(id);
 
+function apiUrl(path = '') {
+  const normalized = String(path || '').startsWith('/') ? String(path || '') : `/${path}`;
+  return `${API}${normalized}`;
+}
+
 function getLaunchParams() {
   try {
     return new URLSearchParams(window.location.search);
@@ -564,12 +569,12 @@ function getUploadHeaders() {
 
 async function apiFetch(path, options = {}) {
   try {
-    const res = await fetch(`${API}${path}`, options);
+    const res = await fetch(apiUrl(path), options);
     if (res.status === 401) handleAuthError();
     return res;
   } catch (err) {
     if (err.name === 'TypeError' || err.message.includes('fetch')) {
-      throw new Error(`Cannot connect to server at ${API}. Is the backend running?`);
+      throw new Error(`Cannot connect to server at ${API}`);
     }
     throw err;
   }
@@ -682,7 +687,7 @@ async function doLogin() {
   }
 
   try {
-    const res = await fetch(`${API}/api/auth/login`, {
+    const res = await fetch(apiUrl('/api/auth/login'), {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ email, password }),
@@ -1380,7 +1385,7 @@ async function uploadDocToBackend(entry) {
   form.append('file', entry.file, entry.file.name);
 
   try {
-    const res = await fetch(`${API}/api/upload`, {
+    const res = await fetch(apiUrl('/api/upload'), {
       method:  'POST',
       headers: getUploadHeaders(),
       body:    form,
@@ -1515,7 +1520,7 @@ async function transcribeRecordedAudio() {
   form.append('audio', blob, `voice.${(state.audioMimeType || 'audio/webm').includes('mp4') ? 'm4a' : 'webm'}`);
   form.append('language', String(lang || '').slice(0, 2));
 
-  const res = await fetch(`${API}/voice/voice-chat`, {
+  const res = await fetch(apiUrl('/voice/voice-chat'), {
     method:  'POST',
     headers: getUploadHeaders(),
     body:    form,
@@ -1769,7 +1774,7 @@ async function sendStreaming(query, images, attachments = []) {
     if (images.length      > 0) body.images      = buildImagePayload(images);
     if (attachments.length > 0) body.attachments = attachments;
 
-    const res = await fetch(`${API}/api/stream`, {
+    const res = await fetch(apiUrl('/api/stream'), {
       method:  'POST',
       headers: getAuthHeaders(),
       body:    JSON.stringify(body),
@@ -2268,7 +2273,7 @@ async function loadAnalytics() {
   if (refreshBtn) refreshBtn.classList.add('spinning');
 
   try {
-    const res = await fetch(`${API}/analytics`, {
+    const res = await fetch(apiUrl('/analytics'), {
       headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` },
     });
 
