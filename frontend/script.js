@@ -10,6 +10,7 @@ const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 const DOC_TYPES   = ['application/pdf', 'text/plain'];
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp'];
 const DOC_EXTENSIONS = ['.pdf', '.txt', '.md', '.csv'];
+const GUEST_USER = { name: 'Guest', email: 'guest@aegis.ai' };
 
 const state = {
   user:           null,
@@ -146,6 +147,51 @@ function hasStoredGuestSession() {
   } catch {
     return false;
   }
+}
+
+function persistGuestSession() {
+  localStorage.setItem('isGuest', 'true');
+  localStorage.removeItem('isAdmin');
+  localStorage.removeItem('rag-token');
+  localStorage.setItem('rag-user', JSON.stringify(GUEST_USER));
+  state.isGuest = true;
+  state.isAdmin = false;
+  state.token = null;
+  state.user = { ...GUEST_USER };
+}
+
+function restoreStoredSession() {
+  const savedUser = localStorage.getItem('rag-user');
+  const isGuest = localStorage.getItem('isGuest') === 'true';
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+
+  if (savedUser) {
+    try {
+      const parsed = JSON.parse(savedUser);
+      const guestUser = String(parsed?.email || '').toLowerCase() === GUEST_USER.email;
+      state.user = parsed;
+      state.isGuest = isGuest || guestUser;
+      state.isAdmin = isAdmin && !state.isGuest;
+      state.token = state.isGuest ? null : getStoredToken();
+      if (state.isGuest) {
+        localStorage.setItem('isGuest', 'true');
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('rag-token');
+      }
+      showApp();
+      return true;
+    } catch {
+      localStorage.removeItem('rag-user');
+    }
+  }
+
+  if (isGuest || hasStoredGuestSession()) {
+    persistGuestSession();
+    showApp();
+    return true;
+  }
+
+  return false;
 }
 
 function queryRefersToRecentUpload(query) {
@@ -354,40 +400,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const autoGuest = launchParams.get('auto_guest') === '1';
   const autoMic = launchParams.get('auto_mic') === '1';
 
-  const savedUser = localStorage.getItem('rag-user');
-  const isGuest   = localStorage.getItem('isGuest') === 'true';
-  const isAdmin   = localStorage.getItem('isAdmin') === 'true';
-
-  if (savedUser) {
-    try {
-      state.user    = JSON.parse(savedUser);
-      state.token   = getStoredToken();
-      state.isAdmin = isAdmin;
-      showApp();
-    } catch {
-      localStorage.removeItem('rag-user');
-    }
-  } else if (isGuest) {
-    state.isGuest = true;
-    state.user    = { name: 'Guest', email: 'guest@aegis.ai' };
-    showApp();
-  } else if (autoGuest) {
-    localStorage.setItem('isGuest', 'true');
-    localStorage.removeItem('isAdmin');
-    localStorage.removeItem('rag-token');
-    state.isGuest = true;
-    state.isAdmin = false;
-    state.token = null;
-    state.user = { name: 'Guest', email: 'guest@aegis.ai' };
-    showApp();
-  } else if (hasStoredGuestSession()) {
-    localStorage.setItem('isGuest', 'true');
-    localStorage.removeItem('isAdmin');
-    localStorage.removeItem('rag-token');
-    state.isGuest = true;
-    state.isAdmin = false;
-    state.token = null;
-    state.user = { name: 'Guest', email: 'guest@aegis.ai' };
+  if (!restoreStoredSession() && autoGuest) {
+    persistGuestSession();
     showApp();
   }
 
@@ -658,10 +672,8 @@ async function apiFetch(path, options = {}) {
 
 function handleAuthError() {
   showToast('Session expired. Switching to guest mode.');
-  state.isGuest = true;
-  state.token   = null;
-  localStorage.setItem('isGuest', 'true');
-  localStorage.removeItem('rag-token');
+  persistGuestSession();
+  if ($('appWrapper')?.style.display === 'none') showApp();
 }
 
 function switchTab(tab) {
@@ -729,13 +741,7 @@ function recoverPassword() {
 }
 
 function continueAsGuest() {
-  localStorage.setItem('isGuest', 'true');
-  localStorage.removeItem('isAdmin');
-  localStorage.removeItem('rag-token');
-  state.isGuest = true;
-  state.isAdmin = false;
-  state.token   = null;
-  state.user    = { name: 'Guest', email: 'guest@aegis.ai' };
+  persistGuestSession();
   showApp();
 }
 
@@ -835,6 +841,8 @@ function doSignup() {
 
 function loginSuccess(user) {
   state.user = user;
+  state.isGuest = String(user?.email || '').toLowerCase() === GUEST_USER.email;
+  if (!state.isGuest) localStorage.removeItem('isGuest');
   localStorage.setItem('rag-user', JSON.stringify(user));
   showApp();
 }
