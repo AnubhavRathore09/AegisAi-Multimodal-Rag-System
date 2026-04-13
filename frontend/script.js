@@ -1,6 +1,19 @@
 'use strict';
 
-const API = "https://aegisai-multimodal-rag-system.onrender.com";
+const REMOTE_API = 'https://aegisai-multimodal-rag-system.onrender.com';
+
+function resolveApiBase() {
+  try {
+    if (window.location.protocol === 'file:') return 'http://127.0.0.1:8000';
+    const override = String(window.__AEGIS_API_BASE__ || localStorage.getItem('rag-api-base') || '').trim();
+    if (override) return override.replace(/\/+$/, '');
+    return '';
+  } catch {
+    return REMOTE_API;
+  }
+}
+
+const API = resolveApiBase();
 const ADMIN_TOKEN = 'anubhav_admin_secure';
 
 const MAX_FILE_SIZE_MB = 20;
@@ -56,6 +69,20 @@ const state = {
 };
 
 const $ = id => document.getElementById(id);
+
+function apiUrl(path = '') {
+  const normalized = String(path || '').startsWith('/') ? String(path || '') : `/${path}`;
+  return `${API}${normalized}`;
+}
+
+function apiDisplayBase() {
+  if (API) return API;
+  try {
+    return window.location.origin;
+  } catch {
+    return REMOTE_API;
+  }
+}
 
 function getLaunchParams() {
   try {
@@ -657,14 +684,14 @@ function getUploadHeaders() {
 
 async function apiFetch(path, options = {}) {
   try {
-    const res = await fetch(`${API}${path}`, options);
+    const res = await fetch(apiUrl(path), options);
     if (res.status === 401) {
       handleAuthError();
     }
     return res;
   } catch (err) {
     if (err.name === 'TypeError' || err.message.includes('fetch')) {
-      throw new Error(`Cannot connect to server at ${API}. Is the backend running?`);
+      throw new Error(`Cannot connect to server at ${apiDisplayBase()}. Is the backend running?`);
     }
     throw err;
   }
@@ -783,7 +810,7 @@ async function doLogin() {
   }
 
   try {
-    const res = await fetch(`${API}/api/auth/login`, {
+    const res = await fetch(apiUrl('/api/auth/login'), {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ email, password }),
@@ -1493,7 +1520,7 @@ async function uploadDocToBackend(entry) {
   form.append('file', entry.file, entry.file.name);
 
   try {
-    const res = await fetch(`${API}/api/upload`, {
+    const res = await fetch(apiUrl('/api/upload'), {
       method:  'POST',
       headers: getUploadHeaders(),
       body:    form,
@@ -1562,7 +1589,7 @@ async function toggleVoice() {
   if (window.location.protocol === 'file:') {
     showToast('Opening the app server for microphone access...');
     setTimeout(() => {
-      window.location.href = 'http://127.0.0.1:8000?auto_guest=1&auto_mic=1';
+      window.location.href = `${apiDisplayBase()}?auto_guest=1&auto_mic=1`;
     }, 250);
     return;
   }
@@ -1634,7 +1661,7 @@ async function transcribeRecordedAudio() {
   form.append('audio', blob, `voice.${(state.audioMimeType || 'audio/webm').includes('mp4') ? 'm4a' : 'webm'}`);
   form.append('language', String(lang || '').slice(0, 2));
 
-  const res = await fetch(`${API}/voice/voice-chat`, {
+  const res = await fetch(apiUrl('/voice/voice-chat'), {
     method: 'POST',
     headers: getUploadHeaders(),
     body: form,
@@ -1905,7 +1932,7 @@ async function sendStreaming(query, images, attachments = []) {
     if (images.length > 0) body.images = buildImagePayload(images);
     if (attachments.length > 0) body.attachments = attachments;
 
-    const res = await fetch(`${API}/api/stream`, {
+    const res = await fetch(apiUrl('/api/stream'), {
       method:  'POST',
       headers: getAuthHeaders(),
       body:    JSON.stringify(body),
@@ -2432,7 +2459,7 @@ async function loadAnalytics() {
   if (refreshBtn) refreshBtn.classList.add('spinning');
 
   try {
-    const res = await fetch(`${API}/analytics`, {
+    const res = await fetch(apiUrl('/analytics'), {
       headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` },
     });
 
