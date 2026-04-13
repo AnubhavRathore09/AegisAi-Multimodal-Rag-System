@@ -8,6 +8,8 @@ const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 const DOC_TYPES   = ['application/pdf', 'text/plain'];
+const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp'];
+const DOC_EXTENSIONS = ['.pdf', '.txt', '.md', '.csv'];
 
 const state = {
   user:           null,
@@ -120,6 +122,32 @@ function fileToBase64(file) {
   });
 }
 
+function fileExtension(name = '') {
+  const value = String(name || '').toLowerCase();
+  const dot = value.lastIndexOf('.');
+  return dot >= 0 ? value.slice(dot) : '';
+}
+
+function detectFileKind(file) {
+  const type = String(file?.type || '').toLowerCase();
+  const ext = fileExtension(file?.name || '');
+  if (IMAGE_TYPES.includes(type) || IMAGE_EXTENSIONS.includes(ext)) return 'image';
+  if (DOC_TYPES.includes(type) || DOC_EXTENSIONS.includes(ext)) return 'doc';
+  return null;
+}
+
+function hasStoredGuestSession() {
+  try {
+    const guestFlag = localStorage.getItem('isGuest') === 'true';
+    const guestUser = localStorage.getItem('rag-user');
+    const guestSessions = localStorage.getItem('rag-sessions-guest@aegis.ai');
+    const guestActiveChat = localStorage.getItem('rag-active-chat-guest@aegis.ai');
+    return guestFlag || !!guestUser || !!guestSessions || !!guestActiveChat;
+  } catch {
+    return false;
+  }
+}
+
 function queryRefersToRecentUpload(query) {
   return /\b(this|that|it|uploaded|upload|image|photo|document|file|receipt|pdf)\b/i.test(query || '');
 }
@@ -228,15 +256,14 @@ async function processSelectedFiles(files) {
       showToast(`File too large: ${file.name} (max ${MAX_FILE_SIZE_MB}MB)`);
       continue;
     }
-    const isImage = IMAGE_TYPES.includes(file.type);
-    const isDoc = DOC_TYPES.includes(file.type) || file.name.toLowerCase().endsWith('.txt');
-    if (!isImage && !isDoc) {
+    const kind = detectFileKind(file);
+    if (!kind) {
       showToast(`Unsupported file type: ${file.name}`);
       continue;
     }
     const entry = {
       file,
-      type: isImage ? 'image' : 'doc',
+      type: kind,
       base64: null,
       uploaded: false,
       previewUrl: null,
@@ -263,18 +290,27 @@ async function processSelectedFiles(files) {
 
 function initComposerDragDrop() {
   const inputWrap = $('inputWrap');
-  if (!inputWrap) return;
+  const appWrapper = $('appWrapper');
+  if (!inputWrap || !appWrapper) return;
+
+  const isFileDrag = event => {
+    const types = Array.from(event.dataTransfer?.types || []);
+    return types.includes('Files');
+  };
 
   document.addEventListener('dragover', event => {
+    if (!isFileDrag(event)) return;
     event.preventDefault();
   });
 
   document.addEventListener('drop', event => {
-    if (!inputWrap.contains(event.target)) event.preventDefault();
+    if (!isFileDrag(event)) return;
+    event.preventDefault();
   });
 
   ['dragenter', 'dragover'].forEach(type => {
-    inputWrap.addEventListener(type, event => {
+    appWrapper.addEventListener(type, event => {
+      if (!isFileDrag(event) || $('appWrapper')?.style.display === 'none') return;
       event.preventDefault();
       event.stopPropagation();
       state.dragDepth += 1;
@@ -283,7 +319,8 @@ function initComposerDragDrop() {
   });
 
   ['dragleave', 'dragend'].forEach(type => {
-    inputWrap.addEventListener(type, event => {
+    appWrapper.addEventListener(type, event => {
+      if (!isFileDrag(event)) return;
       event.preventDefault();
       event.stopPropagation();
       state.dragDepth = Math.max(0, state.dragDepth - 1);
@@ -291,7 +328,8 @@ function initComposerDragDrop() {
     });
   });
 
-  inputWrap.addEventListener('drop', async event => {
+  appWrapper.addEventListener('drop', async event => {
+    if (!isFileDrag(event) || $('appWrapper')?.style.display === 'none') return;
     event.preventDefault();
     event.stopPropagation();
     state.dragDepth = 0;
@@ -334,6 +372,15 @@ document.addEventListener('DOMContentLoaded', () => {
     state.user    = { name: 'Guest', email: 'guest@aegis.ai' };
     showApp();
   } else if (autoGuest) {
+    localStorage.setItem('isGuest', 'true');
+    localStorage.removeItem('isAdmin');
+    localStorage.removeItem('rag-token');
+    state.isGuest = true;
+    state.isAdmin = false;
+    state.token = null;
+    state.user = { name: 'Guest', email: 'guest@aegis.ai' };
+    showApp();
+  } else if (hasStoredGuestSession()) {
     localStorage.setItem('isGuest', 'true');
     localStorage.removeItem('isAdmin');
     localStorage.removeItem('rag-token');
@@ -1166,7 +1213,9 @@ async function loadHistory() {
 
   if (state.isGuest) {
     if (hl) hl.style.display = 'none';
-    if (he) he.style.display = 'flex';
+    const sessions = JSON.parse(localStorage.getItem(sessionsStorageKey()) || '[]');
+    renderHistoryList(sessions);
+    restoreActiveSession(sessions);
     return;
   }
 
@@ -1327,7 +1376,6 @@ async function loadSession(session) {
 }
 
 function saveSessionLocal(id, title) {
-  if (state.isGuest) return;
   const key      = sessionsStorageKey();
   const sessions = JSON.parse(localStorage.getItem(key) || '[]');
   const now      = new Date().toISOString();
@@ -1344,7 +1392,6 @@ function saveSessionLocal(id, title) {
 }
 
 function saveMsgLocal(chatId, role, content) {
-  if (state.isGuest) return;
   const key  = `rag-msgs-${chatId}`;
   const msgs = JSON.parse(localStorage.getItem(key) || '[]');
   msgs.push({ role, content, timestamp: new Date().toISOString() });
