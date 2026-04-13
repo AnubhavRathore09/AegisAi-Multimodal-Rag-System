@@ -3,18 +3,6 @@
     {
       "source": "/",
       "destination": "/index.html"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "https://aegisai-multimodal-rag-system.onrender.com/api/$1"
-    },
-    {
-      "source": "/voice/(.*)",
-      "destination": "https://aegisai-multimodal-rag-system.onrender.com/voice/$1"
-    },
-    {
-      "source": "/analytics",
-      "destination": "https://aegisai-multimodal-rag-system.onrender.com/analytics"
     }
   ]
 }
