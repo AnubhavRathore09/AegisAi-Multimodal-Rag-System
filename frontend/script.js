@@ -1933,18 +1933,22 @@ async function sendStreaming(query, images, attachments = []) {
         saveMsgLocal(state.chatId, 'assistant', bubble.innerText);
         saveSessionAfterSend(query);
       }
-    } else {
-      console.error('Stream error:', err);
-        if (!fallbackAttempted)
-        aiDiv.remove();
-        fallbackAttempted = true;
-        await sendBatch(query, images, attachments);
-        return;
-      }
-      const cursor = aiDiv.querySelector('.streaming-cursor');
-      if (cursor) cursor.remove();
-      showToast(`Stream error: ${err.message}`);
-    }
+   } else {
+  console.error('Stream error:', err);
+
+  if (!fallbackAttempted) {
+    aiDiv.remove();
+    fallbackAttempted = true;
+    await sendBatch(query, images, attachments);
+    return;
+  }
+
+  const cursor = aiDiv.querySelector('.streaming-cursor');
+  if (cursor) cursor.remove();
+
+  showToast(`Stream error: ${err.message}`);
+}
+      
   } finally {
     setLoading(false, false);
     state.currentStream = null;
