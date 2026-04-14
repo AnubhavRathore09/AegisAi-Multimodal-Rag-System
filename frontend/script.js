@@ -685,39 +685,35 @@ async function doLogin() {
 
   if (isAdminLogin) {
     localStorage.setItem('isAdmin', 'true');
-    localStorage.setItem('rag-token', ADMIN_TOKEN);
     localStorage.removeItem('isGuest');
     state.isAdmin = true;
     state.token   = ADMIN_TOKEN;
+    
+    localStorage.setItem('rag-token', ADMIN_TOKEN);
     loginSuccess({ name: 'Admin', email });
     return;
   }
 
   if (isDemoLogin) {
+    state.token = "local-auth";
+    localStorage.setItem('rag-token', "local-auth");
+
     localStorage.removeItem('isGuest');
     localStorage.removeItem('isAdmin');
     state.isAdmin = false;
-    state.token   = null;
     loginSuccess({ name: 'Demo User', email });
     return;
   }
+window.onload = () => {
+  const token = localStorage.getItem('rag-token');
+  const savedUser = JSON.parse(localStorage.getItem('rag-current-user'));
 
-  try {
-      const res = await apiFetch('/api/login', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email, password }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const tok  = data.access_token || data.token || null;
-      if (tok) { state.token = tok; localStorage.setItem('rag-token', tok); }
-      localStorage.removeItem('isGuest');
-      localStorage.removeItem('isAdmin');
-      loginSuccess(data.user || { name: email.split('@')[0], email });
-      return;
-    }
-  } catch {}
+  if (token && savedUser) {
+    state.token = token;
+    state.user = savedUser;
+    showApp();
+  }
+};
 
   const users = JSON.parse(localStorage.getItem('rag-users') || '[]');
   const user  = users.find(u => u.email === email && u.password === password);
@@ -758,7 +754,7 @@ function doSignup() {
 
 function loginSuccess(user) {
   state.user = user;
-  localStorage.setItem('rag-user', JSON.stringify(user));
+  localStorage.setItem('rag-current-user', JSON.stringify(user));
   showApp();
 }
 
