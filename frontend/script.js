@@ -658,52 +658,15 @@ function continueAsGuest() {
   localStorage.setItem('isGuest', 'true');
   localStorage.removeItem('isAdmin');
   localStorage.removeItem('rag-token');
+
   state.isGuest = true;
   state.isAdmin = false;
-  state.token   = null;
-  state.user    = { name: 'Guest', email: 'guest@aegis.ai' };
+  state.token = null;
+  state.user = { name: 'Guest', email: 'guest@aegis.ai' };
+
   showApp();
 }
 
-async function doLogin() {
-  const email    = $('loginEmail').value.trim();
-  const password = $('loginPassword').value;
-  const errEl    = $('loginError');
-
-  if (!email || !password) { errEl.textContent = 'Please fill all fields.'; return; }
-
-  const btnText  = $('loginBtnText');
-  const spinner  = $('loginSpinner');
-  const loginBtn = $('loginBtn');
-  if (btnText)  btnText.style.display  = 'none';
-  if (spinner)  spinner.style.display  = 'block';
-  if (loginBtn) loginBtn.disabled      = true;
-  errEl.textContent = '';
-
-  const isAdminLogin = (email === 'admin@aegis.ai' && password === 'admin123');
-  const isDemoLogin  = (email === 'demo@aegis.ai'  && password === 'demo123');
-
-  if (isAdminLogin) {
-    localStorage.setItem('isAdmin', 'true');
-    localStorage.removeItem('isGuest');
-    state.isAdmin = true;
-    state.token   = ADMIN_TOKEN;
-    
-    localStorage.setItem('rag-token', ADMIN_TOKEN);
-    loginSuccess({ name: 'Admin', email });
-    return;
-  }
-
-  if (isDemoLogin) {
-    state.token = "local-auth";
-    localStorage.setItem('rag-token', "local-auth");
-
-    localStorage.removeItem('isGuest');
-    localStorage.removeItem('isAdmin');
-    state.isAdmin = false;
-    loginSuccess({ name: 'Demo User', email });
-    return;
-  }
 window.onload = () => {
   const token = localStorage.getItem('rag-token');
   const savedUser = JSON.parse(localStorage.getItem('rag-current-user'));
@@ -715,48 +678,136 @@ window.onload = () => {
   }
 };
 
-  const users = JSON.parse(localStorage.getItem('rag-users') || '[]');
-  const user  = users.find(u => u.email === email && u.password === password);
+async function doLogin() {
+  const email = $('loginEmail').value.trim();
+  const password = $('loginPassword').value;
+  const errEl = $('loginError');
 
-  if (!user) {
-    errEl.textContent = 'Invalid email or password.';
-    if (btnText)  btnText.style.display = 'block';
-    if (spinner)  spinner.style.display = 'none';
-    if (loginBtn) loginBtn.disabled     = false;
+  if (!email || !password) {
+    errEl.textContent = 'Please fill all fields.';
     return;
   }
 
-  localStorage.removeItem('isGuest');
-  localStorage.removeItem('isAdmin');
-  loginSuccess(user);
+  const btnText = $('loginBtnText');
+  const spinner = $('loginSpinner');
+  const loginBtn = $('loginBtn');
+
+  if (btnText) btnText.style.display = 'none';
+  if (spinner) spinner.style.display = 'block';
+  if (loginBtn) loginBtn.disabled = true;
+
+  errEl.textContent = '';
+
+  try {
+    const isAdminLogin = (email === 'admin@aegis.ai' && password === 'admin123');
+    const isDemoLogin = (email === 'demo@aegis.ai' && password === 'demo123');
+
+    if (isAdminLogin) {
+      localStorage.setItem('isAdmin', 'true');
+      localStorage.removeItem('isGuest');
+
+      state.isAdmin = true;
+      state.token = ADMIN_TOKEN;
+      localStorage.setItem('rag-token', ADMIN_TOKEN);
+
+      loginSuccess({ name: 'Admin', email });
+      return;
+    }
+
+    if (isDemoLogin) {
+      state.token = "local-auth";
+      localStorage.setItem('rag-token', "local-auth");
+
+      localStorage.removeItem('isGuest');
+      localStorage.removeItem('isAdmin');
+
+      state.isAdmin = false;
+
+      loginSuccess({ name: 'Demo User', email });
+      return;
+    }
+
+    const users = JSON.parse(localStorage.getItem('rag-users') || '[]');
+    const user = users.find(u => u.email === email && u.password === password);
+
+    if (!user) {
+      errEl.textContent = 'Invalid email or password.';
+    } else {
+      state.token = "local-auth";
+      localStorage.setItem('rag-token', "local-auth");
+
+      localStorage.removeItem('isGuest');
+      localStorage.removeItem('isAdmin');
+
+      loginSuccess(user);
+      return;
+    }
+
+  } catch (err) {
+    errEl.textContent = 'Login failed. Server error.';
+  }
+
+  if (btnText) btnText.style.display = 'block';
+  if (spinner) spinner.style.display = 'none';
+  if (loginBtn) loginBtn.disabled = false;
 }
 
 function doSignup() {
-  const name     = $('signupName').value.trim();
-  const email    = $('signupEmail').value.trim();
+  const name = $('signupName').value.trim();
+  const email = $('signupEmail').value.trim();
   const password = $('signupPassword').value;
-  const errEl    = $('signupError');
+  const errEl = $('signupError');
 
-  if (!name || !email || !password) { errEl.textContent = 'Fill all fields.'; return; }
-  if (password.length < 6)          { errEl.textContent = 'Password min 6 chars.'; return; }
-  if (!email.includes('@'))         { errEl.textContent = 'Invalid email.'; return; }
+  if (!name || !email || !password) {
+    errEl.textContent = 'Fill all fields.';
+    return;
+  }
+
+  if (password.length < 6) {
+    errEl.textContent = 'Password min 6 chars.';
+    return;
+  }
+
+  if (!email.includes('@')) {
+    errEl.textContent = 'Invalid email.';
+    return;
+  }
 
   const users = JSON.parse(localStorage.getItem('rag-users') || '[]');
-  if (users.find(u => u.email === email)) { errEl.textContent = 'Email already registered.'; return; }
+
+  if (users.find(u => u.email === email)) {
+    errEl.textContent = 'Email already registered.';
+    return;
+  }
 
   const newUser = { name, email, password };
   users.push(newUser);
+
   localStorage.setItem('rag-users', JSON.stringify(users));
   localStorage.removeItem('isGuest');
   localStorage.removeItem('isAdmin');
+
+  state.token = "local-auth";
+  localStorage.setItem('rag-token', "local-auth");
+
   loginSuccess(newUser);
 }
 
 function loginSuccess(user) {
   state.user = user;
   localStorage.setItem('rag-current-user', JSON.stringify(user));
+
+  const btnText = $('loginBtnText');
+  const spinner = $('loginSpinner');
+  const loginBtn = $('loginBtn');
+
+  if (btnText) btnText.style.display = 'block';
+  if (spinner) spinner.style.display = 'none';
+  if (loginBtn) loginBtn.disabled = false;
+
   showApp();
 }
+
 
 function showApp() {
   const authScreen = $('authScreen');
