@@ -12,7 +12,7 @@ function resolveApiBase() {
   }
 }
 
-const API = resolveApiBase();
+const API = "https://aegisai-multimodal-rag-system.onrender.com";
 const ADMIN_TOKEN = 'anubhav_admin_secure';
 
 const MAX_FILE_SIZE_MB = 20;
@@ -438,7 +438,7 @@ async function loadFeatureConfig() {
   if (state._featureLoading) return;
   state._featureLoading = true;
   try {
-    const res = await apiFetch('/api/features', { headers: getAuthHeaders() });
+    const res = await apiFetch('/features', { headers: getAuthHeaders() });
     if (!res || !res.ok) return;
     const data = await res.json();
     state.featureConfig = data;
@@ -1250,7 +1250,7 @@ async function loadHistory() {
   }
 
   try {
-    const res = await apiFetch('/api/history', { headers: getAuthHeaders() });
+    const res = await apiFetch('/history', { headers: getAuthHeaders() });
     if (res && res.ok) {
       const data = await res.json();
       if (hl) hl.style.display = 'none';
@@ -1381,7 +1381,7 @@ async function loadSession(session) {
   }
 
   try {
-    const res  = await apiFetch(`/api/history/${session.id}`, { headers: getAuthHeaders() });
+    const res  = await apiFetch(`/history/${session.id}`, { headers: getAuthHeaders() });
     if (!res || !res.ok) throw new Error('Failed to load session');
     const data = await res.json();
     const msgs = Array.isArray(data) ? data : (data.messages || []);
@@ -1456,7 +1456,7 @@ async function confirmDeleteCurrentChat() {
 async function deleteSession(e, id) {
   if (e) e.stopPropagation();
   try {
-    await apiFetch(`/api/history/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    await apiFetch(`/history/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
   } catch {}
   localStorage.removeItem(`rag-msgs-${id}`);
   const key      = sessionsStorageKey();
@@ -1510,7 +1510,7 @@ async function uploadDocToBackend(entry) {
   form.append('file', entry.file, entry.file.name);
 
   try {
-    const res = await fetch(apiUrl('/api/upload'), {
+    const res = await fetch(apiUrl('/upload'), {
       method:  'POST',
       headers: getUploadHeaders(),
       body:    form,
@@ -1561,7 +1561,7 @@ async function loadIndexedSources() {
   if (state._sourcesLoading) return;
   state._sourcesLoading = true;
   try {
-    const res = await apiFetch('/api/chat/sources', { headers: getAuthHeaders() });
+    const res = await apiFetch('/chat/sources', { headers: getAuthHeaders() });
     if (!res || !res.ok) return;
     const data = await res.json();
     const srcs = data.sources || [];
@@ -1899,7 +1899,7 @@ async function sendStreaming(query, images, attachments = []) {
     if (images.length      > 0) body.images      = buildImagePayload(images);
     if (attachments.length > 0) body.attachments = attachments;
 
-    const res = await fetch(apiUrl('/api/stream'), {
+    const res = await fetch(apiUrl('/stream'), {
       method:  'POST',
       headers: getAuthHeaders(),
       body:    JSON.stringify(body),
@@ -2028,7 +2028,7 @@ async function sendBatch(query, images, attachments = []) {
     if (images.length      > 0) body.images      = buildImagePayload(images);
     if (attachments.length > 0) body.attachments = attachments;
 
-    const res = await apiFetch('/api/chat', {
+    const res = await apiFetch('/chat', {
       method:  'POST',
       headers: getAuthHeaders(),
       body:    JSON.stringify(body),
