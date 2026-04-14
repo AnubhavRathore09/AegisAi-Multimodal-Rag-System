@@ -617,18 +617,6 @@
   </div>
 </div>
 
-<script>
-(function applyFrontendAssetPaths() {
-  const version = '20260411-1207';
-  const base = '.';
-  const stylesheet = document.getElementById('appStylesheet');
-  if (stylesheet) {
-    stylesheet.href = `${base}/style.css?v=${version}`;
-  }
-  const script = document.createElement('script');
-  script.src = `${base}/script.js?v=${version}`;
-  document.body.appendChild(script);
-})();
-</script>
+<script src="./script.js?v=20260411-1207"></script>
 </body>
 </html>

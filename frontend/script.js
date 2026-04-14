@@ -669,7 +669,13 @@ function continueAsGuest() {
 
 window.onload = () => {
   const token = localStorage.getItem('rag-token');
-  const savedUser = JSON.parse(localStorage.getItem('rag-current-user'));
+
+  let savedUser = null;
+  try {
+    savedUser = JSON.parse(localStorage.getItem('rag-current-user') || 'null');
+  } catch {
+    savedUser = null;
+  }
 
   if (token && savedUser) {
     state.token = token;
@@ -708,6 +714,7 @@ async function doLogin() {
 
       state.isAdmin = true;
       state.token = ADMIN_TOKEN;
+
       localStorage.setItem('rag-token', ADMIN_TOKEN);
 
       loginSuccess({ name: 'Admin', email });
@@ -2464,3 +2471,8 @@ document.addEventListener('keydown', e => {
     closeMobileSidebar();
   }
 });
+window.doLogin = doLogin;
+window.doSignup = doSignup;
+window.switchTab = switchTab;
+window.continueAsGuest = continueAsGuest;̰
+window.openForgotPasswordModal = openForgotPasswordModal;
