@@ -2478,5 +2478,5 @@ document.addEventListener('keydown', e => {
 window.doLogin = doLogin;
 window.doSignup = doSignup;
 window.switchTab = switchTab;
-window.continueAsGuest = continueAsGuest;̰
+window.continueAsGuest = continueAsGuest;
 window.openForgotPasswordModal = openForgotPasswordModal;
