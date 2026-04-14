@@ -856,7 +856,6 @@ function showApp() {
   loadIndexedSources();
 }
 
-}
 
 function doLogout() {
   localStorage.removeItem('rag-user');
