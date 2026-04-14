@@ -20,16 +20,33 @@
 <div class="auth-screen" id="authScreen">
   <div class="auth-card">
 
+    <!-- LOGO -->
     <div class="auth-logo-wrap">
       <div class="logo-glow-ring"></div>
+
       <div class="logo-spinner">
-        <img class="logo-img" src="logo.png" alt="Aegis AI" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+        <img class="logo-img" src="logo.png" alt="Aegis AI"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
+
         <svg class="logo-svg-fallback" style="display:none" viewBox="0 0 100 100">
-          <defs><radialGradient id="fg" cx="40%" cy="35%" r="65%"><stop offset="0%" stop-color="#a5f3fc"/><stop offset="40%" stop-color="#38bdf8"/><stop offset="75%" stop-color="#4f8ef7"/><stop offset="100%" stop-color="#7c3aed"/></radialGradient><filter id="ff"><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
-          <g filter="url(#ff)" fill="url(#fg)"><path d="M50 50 Q55 20 65 15 Q80 10 75 30 Q70 45 50 50Z" opacity="0.95"/><path d="M50 50 Q78 48 85 58 Q90 72 70 72 Q55 70 50 50Z" opacity="0.90"/><path d="M50 50 Q55 78 45 85 Q30 92 28 72 Q28 57 50 50Z" opacity="0.85"/><path d="M50 50 Q22 52 15 42 Q10 28 30 28 Q45 30 50 50Z" opacity="0.80"/><path d="M50 50 Q40 24 48 16 Q56 8 65 22 Q68 35 50 50Z" opacity="0.75"/><path d="M50 50 Q74 60 74 70 Q74 84 60 80 Q48 74 50 50Z" opacity="0.70"/></g>
+          <defs>
+            <radialGradient id="fg" cx="40%" cy="35%" r="65%">
+              <stop offset="0%" stop-color="#a5f3fc"/>
+              <stop offset="40%" stop-color="#38bdf8"/>
+              <stop offset="75%" stop-color="#4f8ef7"/>
+              <stop offset="100%" stop-color="#7c3aed"/>
+            </radialGradient>
+          </defs>
+
+          <g fill="url(#fg)">
+            <path d="M50 50 Q55 20 65 15 Q80 10 75 30 Q70 45 50 50Z" opacity="0.95"/>
+            <path d="M50 50 Q78 48 85 58 Q90 72 70 72 Q55 70 50 50Z" opacity="0.90"/>
+          </g>
+
           <circle cx="50" cy="50" r="14" fill="#060810" opacity="0.9"/>
         </svg>
       </div>
+
       <div class="logo-particles">
         <span class="lp lp1"></span><span class="lp lp2"></span>
         <span class="lp lp3"></span><span class="lp lp4"></span>
@@ -37,63 +54,76 @@
       </div>
     </div>
 
+    <!-- TABS -->
     <div class="auth-tabs">
-  <button class="auth-tab active" id="tabLogin" onclick="window.switchTab && window.switchTab('login')">Sign In</button>
-  <button class="auth-tab" id="tabSignup" onclick="window.switchTab && window.switchTab('signup')">Sign Up</button>
-  <button class="auth-tab guest-tab" onclick="window.continueAsGuest && window.continueAsGuest()">👤 Guest</button>
-</div>
+      <button class="auth-tab active" id="tabLogin"
+        onclick="window.switchTab && window.switchTab('login')">Sign In</button>
 
-<div class="auth-form" id="formLogin">
-  <div class="form-group">
-    <label>Email</label>
-    <input type="email" id="loginEmail" placeholder="you@example.com"
-      onkeydown="if(event.key==='Enter'){ window.doLogin && window.doLogin(); }" />
+      <button class="auth-tab" id="tabSignup"
+        onclick="window.switchTab && window.switchTab('signup')">Sign Up</button>
+
+      <button class="auth-tab guest-tab"
+        onclick="window.continueAsGuest && window.continueAsGuest()">👤 Guest</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="auth-form" id="formLogin">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com"
+          onkeydown="if(event.key==='Enter'){ window.doLogin && window.doLogin(); }" />
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter password"
+          onkeydown="if(event.key==='Enter'){ window.doLogin && window.doLogin(); }" />
+      </div>
+
+      <div class="auth-error" id="loginError"></div>
+
+      <button class="auth-submit" id="loginBtn" type="button"
+        onclick="window.doLogin && window.doLogin()">
+        <span id="loginBtnText">Sign In</span>
+        <div class="btn-spinner" id="loginSpinner" style="display:none"></div>
+      </button>
+
+      <button class="auth-link-btn" type="button"
+        onclick="window.openForgotPasswordModal && window.openForgotPasswordModal()">
+        Forgot password?
+      </button>
+
+      <p class="auth-demo">
+        © 2026 • Built by <b>Anubhav Rathore</b>
+      </p>
+    </div>
+
+    <!-- SIGNUP -->
+    <div class="auth-form" id="formSignup" style="display:none">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="signupName" placeholder="Your name" />
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="signupEmail" placeholder="you@example.com" />
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="signupPassword"
+          placeholder="Create password (min 6 chars)"
+          onkeydown="if(event.key==='Enter'){ window.doSignup && window.doSignup(); }" />
+      </div>
+
+      <div class="auth-error" id="signupError"></div>
+
+      <button class="auth-submit" type="button"
+        onclick="window.doSignup && window.doSignup()">Create Account</button>
+    </div>
+
   </div>
-
-  <div class="form-group">
-    <label>Password</label>
-    <input type="password" id="loginPassword" placeholder="Enter password"
-      onkeydown="if(event.key==='Enter'){ window.doLogin && window.doLogin(); }" />
-  </div>
-
-  <div class="auth-error" id="loginError"></div>
-
-  <button class="auth-submit" id="loginBtn" type="button"
-    onclick="window.doLogin && window.doLogin()">
-    <span id="loginBtnText">Sign In</span>
-    <div class="btn-spinner" id="loginSpinner" style="display:none"></div>
-  </button>
-
-  <button class="auth-link-btn" type="button"
-    onclick="window.openForgotPasswordModal && window.openForgotPasswordModal()">Forgot password?</button>
-
-  <p class="auth-demo">
-    © 2026 • Built by <b>Anubhav Rathore</b>
-  </p>
-</div>
-
-<div class="auth-form" id="formSignup" style="display:none">
-  <div class="form-group">
-    <label>Full Name</label>
-    <input type="text" id="signupName" placeholder="Your name" />
-  </div>
-
-  <div class="form-group">
-    <label>Email</label>
-    <input type="email" id="signupEmail" placeholder="you@example.com" />
-  </div>
-
-  <div class="form-group">
-    <label>Password</label>
-    <input type="password" id="signupPassword"
-      placeholder="Create password (min 6 chars)"
-      onkeydown="if(event.key==='Enter'){ window.doSignup && window.doSignup(); }" />
-  </div>
-
-  <div class="auth-error" id="signupError"></div>
-
-  <button class="auth-submit" type="button"
-    onclick="window.doSignup && window.doSignup()">Create Account</button>
 </div>
   
 <div class="app-wrapper" id="appWrapper" style="display:none">
@@ -621,7 +651,7 @@
 console.log("SCRIPT LOADED");
 </script>
 
-<script src="/script.js?v=999"></script>
+<script src="/script.js?v=999" defer></script>
 
 </body>
 </html>

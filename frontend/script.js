@@ -669,18 +669,13 @@ function continueAsGuest() {
 
 window.onload = () => {
   const token = localStorage.getItem('rag-token');
-
-  let savedUser = null;
-  try {
-    savedUser = JSON.parse(localStorage.getItem('rag-current-user') || 'null');
-  } catch {
-    savedUser = null;
-  }
+  const savedUser = JSON.parse(localStorage.getItem('rag-current-user'));
 
   if (token && savedUser) {
-    state.token = token;
-    state.user = savedUser;
     showApp();
+  } else {
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('appWrapper').style.display = 'none';
   }
 };
 
@@ -815,44 +810,52 @@ function loginSuccess(user) {
   showApp();
 }
 
-
 function showApp() {
   const authScreen = $('authScreen');
   const appWrapper = $('appWrapper');
+
   if (authScreen) authScreen.style.display = 'none';
   if (appWrapper) appWrapper.style.display = 'flex';
 
-  const name     = state.user?.name || 'User';
+  const name = state.user?.name || 'User';
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
-  const ua  = $('userAvatar');
-  const pa  = $('profileAvatarBig');
-  const un  = $('userName');
-  const ue  = $('userEmail');
-  const wt  = $('welcomeTitle');
-  const pmn = $('profileMenuName');
+  const ua = $('userAvatar');
+  const pa = $('profileAvatarBig');
+  const un = $('userName');
+  const ue = $('userEmail');
+  const wt = $('welcomeTitle');
+  const pm = $('profileMenuName');
   const pma = $('profileMenuAvatar');
-  if (ua)  ua.textContent  = initials;
-  if (pa)  pa.textContent  = initials;
-  if (pma) pma.textContent = initials;
-  if (un)  un.textContent  = name;
-  if (pmn) pmn.textContent = name;
-  if (ue)  ue.textContent  = state.user?.email || '';
-  if (wt)  wt.textContent  = `Welcome${state.isGuest ? '' : ' back'}, ${name.split(' ')[0]}!`;
 
+  if (ua) ua.textContent = initials;
+  if (pa) pa.textContent = initials;
+  if (pma) pma.textContent = initials;
+
+  if (un) un.textContent = name;
+  if (pm) pm.textContent = name;
+
+  if (ue) ue.textContent = state.user?.email || '';
+
+  if (wt) wt.textContent = `Welcome ${state.isGuest ? '' : 'back, '}${name.split(' ')[0]}!`;
+  
   const guestBadge = $('guestBadge');
   const adminBadge = $('adminBadge');
+
   if (guestBadge) guestBadge.style.display = state.isGuest ? 'flex' : 'none';
   if (adminBadge) adminBadge.style.display = state.isAdmin ? 'flex' : 'none';
 
-  if (localStorage.getItem('rag-collapsed') === 'true') setSidebarCollapsed(true);
+  if (localStorage.getItem('rag-collapsed') === 'true') {
+    setSidebarCollapsed(true);
+  }
 
   loadFeatureConfig();
   updateStreamBadge();
   loadTheme();
-
   loadHistory();
   loadIndexedSources();
+}
+
 }
 
 function doLogout() {
