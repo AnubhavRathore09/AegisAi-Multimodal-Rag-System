@@ -1,6 +1,18 @@
 'use strict';
 
-const API = "https://aegisai-multimodal-rag-system.onrender.com";
+const REMOTE_API = "https://aegisai-multimodal-rag-system.onrender.com";
+
+function resolveApiBase() {
+  try {
+    if (window.location.protocol === 'file:') return 'http://127.0.0.1:8000';
+    if (window.location.hostname.endsWith('.vercel.app')) return REMOTE_API; 
+    return REMOTE_API;
+  } catch {
+    return REMOTE_API;
+  }
+}
+
+const API = resolveApiBase();
 const ADMIN_TOKEN = 'anubhav_admin_secure';
 
 const MAX_FILE_SIZE_MB = 20;
@@ -59,8 +71,12 @@ const state = {
 const $ = id => document.getElementById(id);
 
 function apiUrl(path = '') {
-  const normalized = String(path || '').startsWith('/') ? String(path || '') : `/${path}`;
+  const normalized = path.startsWith('/') ? path : `/${path}`;
   return `${API}${normalized}`;
+}
+
+function apiDisplayBase() {
+  return API || window.location.origin || REMOTE_API;
 }
 
 function getLaunchParams() {
@@ -574,7 +590,7 @@ async function apiFetch(path, options = {}) {
     return res;
   } catch (err) {
     if (err.name === 'TypeError' || err.message.includes('fetch')) {
-      throw new Error(`Cannot connect to server at ${API}`);
+      throw new Error(`Cannot connect to server at ${apiDisplayBase()}`);
     }
     throw err;
   }
@@ -1457,7 +1473,7 @@ async function loadIndexedSources() {
 async function toggleVoice() {
   if (window.location.protocol === 'file:') {
     showToast('Opening the app server for microphone access...');
-    setTimeout(() => { window.location.href = `${API}?auto_guest=1&auto_mic=1`; }, 250);
+    setTimeout(() => { window.location.href = `${apiDisplayBase()}?auto_guest=1&auto_mic=1`; }, 250);
     return;
   }
   if (state.recording) finishVoiceInput();
@@ -1865,7 +1881,7 @@ async function sendStreaming(query, images, attachments = []) {
       }
     } else {
       console.error('Stream error:', err);
-      if (!fullText.trim() && !fallbackAttempted) {
+        if (!fallbackAttempted)
         aiDiv.remove();
         fallbackAttempted = true;
         await sendBatch(query, images, attachments);
