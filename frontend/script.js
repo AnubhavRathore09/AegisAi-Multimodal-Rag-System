@@ -703,7 +703,7 @@ async function doLogin() {
   }
 
   try {
-    const res = await fetch(apiUrl('/api/auth/login'), {
+      const res = await apiFetch('/api/login', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ email, password }),
