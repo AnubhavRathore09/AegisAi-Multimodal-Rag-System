@@ -1,12 +1,10 @@
-
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aegis AI</title>
-
-  <link rel="stylesheet" id="appStylesheet" href="style.css" />
+  <link rel="stylesheet" href="/frontend/style.css?v=20260411-1207" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -16,38 +14,32 @@
 <body>
 
 <canvas id="particleCanvas" class="particle-canvas"></canvas>
-  
+
+<!-- AUTH SCREEN -->
 <div class="auth-screen" id="authScreen">
   <div class="auth-card">
 
     <div class="auth-logo-wrap">
       <div class="logo-glow-ring"></div>
-
       <div class="logo-spinner">
-        <img class="logo-img"
-          src="images/Futuristic_glowing_logo_animation-removebg-preview copy.png"
-          alt="Aegis AI"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
-
+        <img class="logo-img" src="logo.png" alt="Aegis AI" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
         <svg class="logo-svg-fallback" style="display:none" viewBox="0 0 100 100">
-          <defs>
-            <radialGradient id="fg" cx="40%" cy="35%" r="65%">
-              <stop offset="0%" stop-color="#a5f3fc"/>
-              <stop offset="40%" stop-color="#38bdf8"/>
-              <stop offset="75%" stop-color="#4f8ef7"/>
-              <stop offset="100%" stop-color="#7c3aed"/>
-            </radialGradient>
-          </defs>
-
-          <g fill="url(#fg)">
-            <path d="M50 50 Q55 20 65 15 Q80 10 75 30 Q70 45 50 50Z"/>
-            <path d="M50 50 Q78 48 85 58 Q90 72 70 72 Q55 70 50 50Z"/>
-          </g>
-
-          <circle cx="50" cy="50" r="14" fill="#060810"/>
+          <defs><radialGradient id="fg" cx="40%" cy="35%" r="65%"><stop offset="0%" stop-color="#a5f3fc"/><stop offset="40%" stop-color="#38bdf8"/><stop offset="75%" stop-color="#4f8ef7"/><stop offset="100%" stop-color="#7c3aed"/></radialGradient><filter id="ff"><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+          <g filter="url(#ff)" fill="url(#fg)"><path d="M50 50 Q55 20 65 15 Q80 10 75 30 Q70 45 50 50Z" opacity="0.95"/><path d="M50 50 Q78 48 85 58 Q90 72 70 72 Q55 70 50 50Z" opacity="0.90"/><path d="M50 50 Q55 78 45 85 Q30 92 28 72 Q28 57 50 50Z" opacity="0.85"/><path d="M50 50 Q22 52 15 42 Q10 28 30 28 Q45 30 50 50Z" opacity="0.80"/><path d="M50 50 Q40 24 48 16 Q56 8 65 22 Q68 35 50 50Z" opacity="0.75"/><path d="M50 50 Q74 60 74 70 Q74 84 60 80 Q48 74 50 50Z" opacity="0.70"/></g>
+          <circle cx="50" cy="50" r="14" fill="#060810" opacity="0.9"/>
         </svg>
       </div>
+      <div class="logo-particles">
+        <span class="lp lp1"></span><span class="lp lp2"></span>
+        <span class="lp lp3"></span><span class="lp lp4"></span>
+        <span class="lp lp5"></span><span class="lp lp6"></span>
+      </div>
     </div>
+
+    <div class="auth-logo">
+      <span class="auth-logo-text">Aegis AI</span>
+    </div>
+    <p class="auth-tagline">Intelligent retrieval-augmented generation</p>
 
     <div class="auth-tabs">
       <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
@@ -57,50 +49,52 @@
 
     <div class="auth-form" id="formLogin">
       <div class="form-group">
-        <input type="email" id="loginEmail" placeholder="Email" />
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()" />
       </div>
-
       <div class="form-group">
-        <input type="password" id="loginPassword" placeholder="Password" />
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" />
       </div>
-
       <div class="auth-error" id="loginError"></div>
-
-      <button class="auth-submit" id="loginBtn" type="button" onclick="doLogin()">
+      <button class="auth-submit" id="loginBtn" onclick="doLogin()">
         <span id="loginBtnText">Sign In</span>
         <div class="btn-spinner" id="loginSpinner" style="display:none"></div>
       </button>
+      <button class="auth-link-btn" onclick="openForgotPasswordModal()">Forgot password?</button>
+      <p class="auth-demo">Demo: <b>demo@aegis.ai / demo123</b> &nbsp;|&nbsp; Admin: <b>admin@aegis.ai / admin123</b></p>
     </div>
 
     <div class="auth-form" id="formSignup" style="display:none">
       <div class="form-group">
-        <input type="text" id="signupName" placeholder="Name" />
+        <label>Full Name</label>
+        <input type="text" id="signupName" placeholder="Your name" />
       </div>
-
       <div class="form-group">
-        <input type="email" id="signupEmail" placeholder="Email" />
+        <label>Email</label>
+        <input type="email" id="signupEmail" placeholder="you@example.com" />
       </div>
-
       <div class="form-group">
-        <input type="password" id="signupPassword" placeholder="Password" />
+        <label>Password</label>
+        <input type="password" id="signupPassword" placeholder="Create password (min 6 chars)" onkeydown="if(event.key==='Enter')doSignup()" />
       </div>
-
       <div class="auth-error" id="signupError"></div>
-
-      <button class="auth-submit" type="button" onclick="doSignup()">Create Account</button>
+      <button class="auth-submit" onclick="doSignup()">Create Account</button>
     </div>
 
   </div>
 </div>
 
-<div class="app-wrapper" id="appWrapper" style="display:none"></div>
-  
+<!-- MAIN APP -->
+<div class="app-wrapper" id="appWrapper" style="display:none">
+
+  <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
 
     <div class="sidebar-header">
       <div class="logo">
         <div class="sidebar-logo">
-          <img class="sidebar-logo-img" src="images/Futuristic_glowing_logo_animation-removebg-preview copy.png" alt="Aegis AI"
+          <img class="sidebar-logo-img" src="logo.png" alt="Aegis AI"
             onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
           <svg class="sidebar-svg-fallback" style="display:none" viewBox="0 0 40 40">
             <defs><radialGradient id="sg" cx="40%" cy="35%" r="65%"><stop offset="0%" stop-color="#a5f3fc"/><stop offset="50%" stop-color="#4f8ef7"/><stop offset="100%" stop-color="#7c3aed"/></radialGradient></defs>
@@ -233,7 +227,7 @@
     </div>
   </aside>
 
-  
+  <!-- MAIN -->
   <div class="main" id="main">
     <header class="topbar">
       <button class="menu-btn" id="mobileMenuBtn" onclick="openMobileSidebar()">
@@ -282,7 +276,7 @@
             <div class="welcome-logo-wrap">
               <div class="logo-glow-ring welcome-glow"></div>
               <div class="logo-spinner welcome-spinner">
-                <img class="welcome-logo-img" src="images/Futuristic_glowing_logo_animation-removebg-preview copy.png" alt="Aegis AI"
+                <img class="welcome-logo-img" src="logo.png" alt="Aegis AI"
                   onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
                 <svg class="welcome-svg-fallback" style="display:none" viewBox="0 0 100 100">
                   <defs><radialGradient id="wg" cx="40%" cy="35%" r="65%"><stop offset="0%" stop-color="#a5f3fc"/><stop offset="40%" stop-color="#38bdf8"/><stop offset="75%" stop-color="#4f8ef7"/><stop offset="100%" stop-color="#7c3aed"/></radialGradient><filter id="wf"><feGaussianBlur in="SourceGraphic" stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
@@ -333,12 +327,6 @@
       </div>
 
       <div class="input-wrap" id="inputWrap">
-        <div class="drop-overlay" id="dropOverlay" aria-hidden="true">
-          <div class="drop-overlay-content">
-            
-          </div>
-        </div>
-
         <div class="input-row">
           <label class="attach-btn" title="Attach PDF, TXT, or Image">
             <input type="file" id="fileInput" accept=".pdf,.txt,.png,.jpg,.jpeg,.webp" multiple style="display:none" onchange="handleFiles(this)" />
@@ -475,7 +463,7 @@
   </div>
 </div>
 
-
+<!-- FORGOT PASSWORD MODAL -->
 <div class="modal-overlay" id="forgotPasswordOverlay" style="display:none" onclick="closeForgotPasswordModal()">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-header">
@@ -501,7 +489,7 @@
   </div>
 </div>
 
-
+<!-- PROFILE MODAL -->
 <div class="modal-overlay" id="profileModalOverlay" style="display:none" onclick="closeProfileModal()">
   <div class="modal-card" onclick="event.stopPropagation()">
     <div class="modal-header">
@@ -527,7 +515,7 @@
   </div>
 </div>
 
-
+<!-- SHARE MODAL -->
 <div class="modal-overlay" id="shareModalOverlay" style="display:none" onclick="closeShareModal()">
   <div class="modal-card share-modal" onclick="event.stopPropagation()">
     <div class="modal-header">
@@ -580,7 +568,7 @@
   </div>
 </div>
 
-
+<!-- ANALYTICS MODAL (ADMIN ONLY) -->
 <div class="modal-overlay" id="analyticsModalOverlay" style="display:none" onclick="closeAnalytics()">
   <div class="modal-card analytics-modal" onclick="event.stopPropagation()">
     <div class="modal-header">
@@ -611,9 +599,8 @@
       <img id="imagePreviewLarge" class="image-preview-large" src="" alt="Uploaded preview" />
     </div>
   </div>
-
 </div>
-<script src="script.js"></script>
 
+<script src="/frontend/script.js?v=20260411-1207"></script>
 </body>
 </html>
