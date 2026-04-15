@@ -20,12 +20,13 @@
 <div class="auth-screen" id="authScreen">
   <div class="auth-card">
 
-    <!-- LOGO -->
     <div class="auth-logo-wrap">
       <div class="logo-glow-ring"></div>
 
       <div class="logo-spinner">
-        <img class="logo-img" src="images/Futuristic_glowing_logo_animation-removebg-preview copy.png" alt="Aegis AI"
+        <img class="logo-img"
+          src="images/Futuristic_glowing_logo_animation-removebg-preview copy.png"
+          alt="Aegis AI"
           onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
 
         <svg class="logo-svg-fallback" style="display:none" viewBox="0 0 100 100">
@@ -39,90 +40,60 @@
           </defs>
 
           <g fill="url(#fg)">
-            <path d="M50 50 Q55 20 65 15 Q80 10 75 30 Q70 45 50 50Z" opacity="0.95"/>
-            <path d="M50 50 Q78 48 85 58 Q90 72 70 72 Q55 70 50 50Z" opacity="0.90"/>
+            <path d="M50 50 Q55 20 65 15 Q80 10 75 30 Q70 45 50 50Z"/>
+            <path d="M50 50 Q78 48 85 58 Q90 72 70 72 Q55 70 50 50Z"/>
           </g>
 
-          <circle cx="50" cy="50" r="14" fill="#060810" opacity="0.9"/>
+          <circle cx="50" cy="50" r="14" fill="#060810"/>
         </svg>
       </div>
-
-      
-
-    <!-- TABS -->
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="tabLogin"
-        onclick="window.switchTab && window.switchTab('login')">Sign In</button>
-
-      <button class="auth-tab" id="tabSignup"
-        onclick="window.switchTab && window.switchTab('signup')">Sign Up</button>
-
-      <button class="auth-tab guest-tab"
-        onclick="window.continueAsGuest && window.continueAsGuest()">👤 Guest</button>
     </div>
 
-    <!-- LOGIN -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
+      <button class="auth-tab guest-tab" onclick="continueAsGuest()">👤 Guest</button>
+    </div>
+
     <div class="auth-form" id="formLogin">
       <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="loginEmail" placeholder="you@example.com"
-          onkeydown="if(event.key==='Enter'){ window.doLogin && window.doLogin(); }" />
+        <input type="email" id="loginEmail" placeholder="Email" />
       </div>
 
       <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="loginPassword" placeholder="Enter password"
-          onkeydown="if(event.key==='Enter'){ window.doLogin && window.doLogin(); }" />
+        <input type="password" id="loginPassword" placeholder="Password" />
       </div>
 
       <div class="auth-error" id="loginError"></div>
 
-      <button class="auth-submit" id="loginBtn" type="button"
-        onclick="window.doLogin && window.doLogin()">
+      <button class="auth-submit" id="loginBtn" type="button" onclick="doLogin()">
         <span id="loginBtnText">Sign In</span>
         <div class="btn-spinner" id="loginSpinner" style="display:none"></div>
       </button>
-
-      <button class="auth-link-btn" type="button"
-        onclick="window.openForgotPasswordModal && window.openForgotPasswordModal()">
-        Forgot password?
-      </button>
-
-      <p class="auth-demo">
-        © 2026 • Built by <b>Anubhav Rathore</b>
-      </p>
     </div>
 
-    <!-- SIGNUP -->
     <div class="auth-form" id="formSignup" style="display:none">
       <div class="form-group">
-        <label>Full Name</label>
-        <input type="text" id="signupName" placeholder="Your name" />
+        <input type="text" id="signupName" placeholder="Name" />
       </div>
 
       <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="signupEmail" placeholder="you@example.com" />
+        <input type="email" id="signupEmail" placeholder="Email" />
       </div>
 
       <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="signupPassword"
-          placeholder="Create password (min 6 chars)"
-          onkeydown="if(event.key==='Enter'){ window.doSignup && window.doSignup(); }" />
+        <input type="password" id="signupPassword" placeholder="Password" />
       </div>
 
       <div class="auth-error" id="signupError"></div>
 
-      <button class="auth-submit" type="button"
-        onclick="window.doSignup && window.doSignup()">Create Account</button>
+      <button class="auth-submit" type="button" onclick="doSignup()">Create Account</button>
     </div>
 
   </div>
 </div>
-  
-<div class="app-wrapper" id="appWrapper" style="display:none">
 
+<div class="app-wrapper" id="appWrapper" style="display:none"></div>
   
   <aside class="sidebar" id="sidebar">
 
