@@ -398,6 +398,12 @@ document.addEventListener('DOMContentLoaded', () => {
 if (hasValidSession && !window.location.search.includes("force_login")) {
     showApp();
 } else {
+    const authScreen = document.getElementById('authScreen');
+    const appWrapper = document.getElementById('appWrapper');
+
+    if (authScreen) authScreen.style.display = 'flex';
+    if (appWrapper) appWrapper.style.display = 'none';
+}
 
   if (autoMic) {
     setTimeout(async () => {
