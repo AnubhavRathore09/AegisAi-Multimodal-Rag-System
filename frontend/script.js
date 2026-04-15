@@ -394,13 +394,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const autoGuest = launchParams.get('auto_guest') === '1';
   const autoMic   = launchParams.get('auto_mic')   === '1';
 
-  if (restoreSession()) {
-  showApp();
-} else if (autoGuest) {
-  persistGuestSession();
+  if (restoreSession() && !window.location.search.includes("force_login")) {
   showApp();
 } else {
-  switchTab('login');
+  const authScreen = document.getElementById('authScreen');
+  const appWrapper = document.getElementById('appWrapper');
+
+  if (authScreen) authScreen.style.display = 'flex';
+  if (appWrapper) appWrapper.style.display = 'none';
 }
 
   if (autoMic) {
