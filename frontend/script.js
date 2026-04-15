@@ -6,9 +6,6 @@ const API = "https://aegisai-multimodal-rag-system.onrender.com";
 
 const ADMIN_TOKEN = 'anubhav_admin_secure';
 let autoGuest = false;
-function $(id) {
-  return document.getElementById(id);
-}
 
 
 
