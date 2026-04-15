@@ -5,6 +5,7 @@ const API = "https://aegisai-multimodal-rag-system.onrender.com";
 
 
 const ADMIN_TOKEN = 'anubhav_admin_secure';
+let autoGuest = false;
 
 const MAX_FILE_SIZE_MB = 20;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -389,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initComposerDragDrop();
 
   const launchParams = getLaunchParams();
-  const autoGuest = launchParams.get('auto_guest') === '1';
+  autoGuest = launchParams.get('auto_guest') === '1';
   const autoMic   = launchParams.get('auto_mic')   === '1';
 
   if (restoreSession() && !window.location.search.includes("force_login")) {
