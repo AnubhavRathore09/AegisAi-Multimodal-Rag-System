@@ -394,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const autoGuest = launchParams.get('auto_guest') === '1';
   const autoMic   = launchParams.get('auto_mic')   === '1';
 
-  if (restoreSession() && !window.location.search.includes("force_login")) {
+  if (restoreSession()) {
   showApp();
 } else if (autoGuest) {
   persistGuestSession();
