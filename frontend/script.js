@@ -6,6 +6,9 @@ const API = "https://aegisai-multimodal-rag-system.onrender.com";
 
 const ADMIN_TOKEN = 'anubhav_admin_secure';
 let autoGuest = false;
+function $(id) {
+  return document.getElementById(id);
+}
 
 const MAX_FILE_SIZE_MB = 20;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -393,16 +396,16 @@ document.addEventListener('DOMContentLoaded', () => {
   autoGuest = launchParams.get('auto_guest') === '1';
   const autoMic   = launchParams.get('auto_mic')   === '1';
 
-  const hasValidSession = restoreSession() && state.token;
+  const hasValidSession = restoreSession();
 
 if (hasValidSession && !window.location.search.includes("force_login")) {
-    showApp();
+  showApp();
 } else {
-    const authScreen = document.getElementById('authScreen');
-    const appWrapper = document.getElementById('appWrapper');
+  const authScreen = document.getElementById('authScreen');
+  const appWrapper = document.getElementById('appWrapper');
 
-    if (authScreen) authScreen.style.display = 'flex';
-    if (appWrapper) appWrapper.style.display = 'none';
+  if (authScreen) authScreen.style.display = 'flex';
+  if (appWrapper) appWrapper.style.display = 'none';
 }
 
   if (autoMic) {
@@ -855,8 +858,8 @@ function loginSuccess(user) {
 }
 
 function showApp() {
-  const authScreen = $('authScreen');
-  const appWrapper = $('appWrapper');
+  const authScreen = document.getElementById('authScreen');
+  const appWrapper = document.getElementById('appWrapper');
 
   if (authScreen) authScreen.style.display = 'none';
   if (appWrapper) appWrapper.style.display = 'flex';
