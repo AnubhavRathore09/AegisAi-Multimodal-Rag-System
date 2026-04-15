@@ -1,18 +1,11 @@
 'use strict';
 
-const REMOTE_API = "https://aegisai-multimodal-rag-system.onrender.com";
+const API = "https://aegisai-multimodal-rag-system.onrender.com";
 
-function resolveApiBase() {
-  try {
-    if (window.location.protocol === 'file:') return 'http://127.0.0.1:8000';
-    if (window.location.hostname.endsWith('.vercel.app')) return '';
-    return REMOTE_API;
-  } catch {
-    return REMOTE_API;
-  }
+function apiUrl(path) {
+  return API + path;
 }
 
-const API = "https://aegisai-multimodal-rag-system.onrender.com";
 const ADMIN_TOKEN = 'anubhav_admin_secure';
 
 const MAX_FILE_SIZE_MB = 20;
@@ -401,14 +394,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const autoGuest = launchParams.get('auto_guest') === '1';
   const autoMic   = launchParams.get('auto_mic')   === '1';
 
-  if (restoreSession()) {
-    showApp();
-  } else if (autoGuest) {
-    persistGuestSession();
-    showApp();
-  } else {
-    switchTab('login');
-  }
+  if (restoreSession() && !window.location.search.includes("force_login")) {
+  showApp();
+} else if (autoGuest) {
+  persistGuestSession();
+  showApp();
+} else {
+  switchTab('login');
+}
 
   if (autoMic) {
     setTimeout(async () => {
@@ -1250,7 +1243,7 @@ async function loadHistory() {
   }
 
   try {
-    const res = await apiFetch('/history', { headers: getAuthHeaders() });
+    const res = await apiFetch('/api/history', { headers: getAuthHeaders() });
     if (res && res.ok) {
       const data = await res.json();
       if (hl) hl.style.display = 'none';
@@ -1381,7 +1374,7 @@ async function loadSession(session) {
   }
 
   try {
-    const res  = await apiFetch(`/history/${session.id}`, { headers: getAuthHeaders() });
+    const res  = await apiFetch(`/api/history/${session.id}`, { headers: getAuthHeaders() });
     if (!res || !res.ok) throw new Error('Failed to load session');
     const data = await res.json();
     const msgs = Array.isArray(data) ? data : (data.messages || []);
@@ -1456,7 +1449,7 @@ async function confirmDeleteCurrentChat() {
 async function deleteSession(e, id) {
   if (e) e.stopPropagation();
   try {
-    await apiFetch(`/history/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    await apiFetch(`/api/history/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
   } catch {}
   localStorage.removeItem(`rag-msgs-${id}`);
   const key      = sessionsStorageKey();
@@ -1510,7 +1503,7 @@ async function uploadDocToBackend(entry) {
   form.append('file', entry.file, entry.file.name);
 
   try {
-    const res = await fetch(apiUrl('/upload'), {
+    const res = await fetch(apiUrl('/api/upload'), {
       method:  'POST',
       headers: getUploadHeaders(),
       body:    form,
@@ -1645,7 +1638,7 @@ async function transcribeRecordedAudio() {
   form.append('audio', blob, `voice.${(state.audioMimeType || 'audio/webm').includes('mp4') ? 'm4a' : 'webm'}`);
   form.append('language', String(lang || '').slice(0, 2));
 
-  const res = await fetch(apiUrl('/voice/voice-chat'), {
+  const res = await fetch(apiUrl('/api/voice/voice-chat'), {
     method:  'POST',
     headers: getUploadHeaders(),
     body:    form,
@@ -1899,7 +1892,7 @@ async function sendStreaming(query, images, attachments = []) {
     if (images.length      > 0) body.images      = buildImagePayload(images);
     if (attachments.length > 0) body.attachments = attachments;
 
-    const res = await fetch(apiUrl('/stream'), {
+    const res = await fetch(apiUrl('/api/stream'), {
       method:  'POST',
       headers: getAuthHeaders(),
       body:    JSON.stringify(body),
@@ -2028,7 +2021,7 @@ async function sendBatch(query, images, attachments = []) {
     if (images.length      > 0) body.images      = buildImagePayload(images);
     if (attachments.length > 0) body.attachments = attachments;
 
-    const res = await apiFetch('/chat', {
+    const res = await apiFetch('/api/chat', {
       method:  'POST',
       headers: getAuthHeaders(),
       body:    JSON.stringify(body),
@@ -2402,7 +2395,7 @@ async function loadAnalytics() {
   if (refreshBtn) refreshBtn.classList.add('spinning');
 
   try {
-    const res = await fetch(apiUrl('/analytics'), {
+    const res = await fetch(apiUrl('/api/analytics'), {
       headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` },
     });
 
