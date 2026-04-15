@@ -2,9 +2,7 @@
 
 const API = "https://aegisai-multimodal-rag-system.onrender.com";
 
-function apiUrl(path) {
-  return API + path;
-}
+
 
 const ADMIN_TOKEN = 'anubhav_admin_secure';
 
@@ -69,7 +67,7 @@ function apiUrl(path = '') {
 }
 
 function apiDisplayBase() {
-  return API || window.location.origin || REMOTE_API;
+  return API || window.location.origin;
 }
 
 function getLaunchParams() {
@@ -432,7 +430,7 @@ async function loadFeatureConfig() {
   if (state._featureLoading) return;
   state._featureLoading = true;
   try {
-    const res = await apiFetch('/features', { headers: getAuthHeaders() });
+    const res = await apiFetch('/api/features', { headers: getAuthHeaders() });
     if (!res || !res.ok) return;
     const data = await res.json();
     state.featureConfig = data;
@@ -712,14 +710,7 @@ function continueAsGuest() {
   showApp();
 }
 
-window.onload = () => {
-  if (!restoreSession()) {
-    const authScreen = document.getElementById('authScreen');
-    const appWrapper = document.getElementById('appWrapper');
-    if (authScreen) authScreen.style.display = 'flex';
-    if (appWrapper) appWrapper.style.display = 'none';
-  }
-};
+
 
 async function doLogin() {
   const email = $('loginEmail').value.trim();
@@ -1555,7 +1546,7 @@ async function loadIndexedSources() {
   if (state._sourcesLoading) return;
   state._sourcesLoading = true;
   try {
-    const res = await apiFetch('/chat/sources', { headers: getAuthHeaders() });
+    const res = await apiFetch('/api/chat/sources', { headers: getAuthHeaders() });
     if (!res || !res.ok) return;
     const data = await res.json();
     const srcs = data.sources || [];
@@ -1899,6 +1890,9 @@ async function sendStreaming(query, images, attachments = []) {
       body:    JSON.stringify(body),
       signal:  controller.signal,
     });
+    if (!res.ok) {
+  throw new Error(`Stream failed: ${res.status}`);
+}
 
     if (res.status === 401) { handleAuthError(); throw new Error('Unauthorized'); }
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
