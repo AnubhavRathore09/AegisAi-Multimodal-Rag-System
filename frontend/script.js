@@ -1,8 +1,6 @@
 'use strict';
 
-const API = window.location.protocol === 'file:'
-  ? 'http://127.0.0.1:8000'
-  : window.location.origin;
+const API = "https://aegisai-multimodal-rag-system.onrender.com";
 const ADMIN_TOKEN = 'anubhav_admin_secure';
 
 const MAX_FILE_SIZE_MB = 20;
@@ -462,17 +460,23 @@ function getUploadHeaders() {
   return h;
 }
 
-async function apiFetch(path, options = {}) {
+async function apiFetch(path, options = {}, retries = 3) {
   try {
     const res = await fetch(`${API}${path}`, options);
-    if (res.status === 401) {
-      handleAuthError();
-    }
+
+    if (res.status === 401) handleAuthError();
+
     return res;
+
   } catch (err) {
-    if (err.name === 'TypeError' || err.message.includes('fetch')) {
-      throw new Error(`Cannot connect to server at ${API}. Is the backend running?`);
+    console.error("API Error:", err);
+
+    if (retries > 0) {
+      console.log("Retrying...", retries);
+      await new Promise(r => setTimeout(r, 2000));
+      return apiFetch(path, options, retries - 1);
     }
+
     throw err;
   }
 }
