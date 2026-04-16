@@ -1,7 +1,13 @@
 'use strict';
 
 const API = "https://aegisai-multimodal-rag-system.onrender.com";
+
+
+
 const ADMIN_TOKEN = 'anubhav_admin_secure';
+let autoGuest = false;
+
+
 
 const MAX_FILE_SIZE_MB = 20;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
@@ -49,12 +55,109 @@ const state = {
   voiceAssistantMode: 'browser',
   voiceRetryCount: 0,
   voiceSubmitting: false,
+  dragDepth: 0,
+  _historyLoading: false,
+  _sourcesLoading: false,
+  _featureLoading: false,
+  _sendLock:       false,
 };
 
 const $ = id => document.getElementById(id);
 
+function apiUrl(path = '') {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${API}${normalized}`;
+}
+
+function apiDisplayBase() {
+  return API || window.location.origin;
+}
+
+function getLaunchParams() {
+  try {
+    return new URLSearchParams(window.location.search);
+  } catch {
+    return new URLSearchParams();
+  }
+}
+
+function clearLaunchParams() {
+  try {
+    const clean = `${window.location.origin}${window.location.pathname}`;
+    window.history.replaceState({}, document.title, clean);
+  } catch {}
+}
+
 function getStoredToken() {
   return localStorage.getItem('rag-token') || null;
+}
+
+function getStoredUser() {
+  try {
+    return JSON.parse(
+      localStorage.getItem('rag-user') ||
+      localStorage.getItem('rag-current-user') ||
+      'null'
+    );
+  } catch {
+    return null;
+  }
+}
+
+function persistUser(user) {
+  localStorage.setItem('rag-user', JSON.stringify(user));
+  localStorage.setItem('rag-current-user', JSON.stringify(user));
+}
+
+function clearStoredUser() {
+  localStorage.removeItem('rag-user');
+  localStorage.removeItem('rag-current-user');
+}
+
+function persistGuestSession() {
+  const guestUser = { name: 'Guest', email: 'guest@aegis.ai' };
+  localStorage.setItem('isGuest', 'true');
+  localStorage.removeItem('isAdmin');
+  localStorage.removeItem('rag-token');
+  persistUser(guestUser);
+  state.isGuest = true;
+  state.isAdmin = false;
+  state.token = null;
+  state.user = guestUser;
+}
+
+function clearStoredSession() {
+  clearStoredUser();
+  localStorage.removeItem('rag-token');
+  localStorage.removeItem('isGuest');
+  localStorage.removeItem('isAdmin');
+}
+
+function restoreSession() {
+  const savedUser = getStoredUser();
+  const token = getStoredToken();
+  const isGuest = localStorage.getItem('isGuest') === 'true';
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+
+  if (isGuest) {
+    persistGuestSession();
+    return true;
+  }
+
+  if (savedUser && token) {
+    state.user = savedUser;
+    state.token = token;
+    state.isGuest = false;
+    state.isAdmin = isAdmin;
+    return true;
+  }
+
+  if (savedUser || token || isAdmin) clearStoredSession();
+  state.user = null;
+  state.token = null;
+  state.isGuest = false;
+  state.isAdmin = false;
+  return false;
 }
 
 function preferenceStorageKey(name) {
@@ -161,18 +264,8 @@ function pickPreferredVoice() {
   }
 
   const preferredMatchers = [
-    /google.*english/i,
-    /en-in/i,
-    /hi-in/i,
-    /samantha/i,
-    /daniel/i,
-    /karen/i,
-    /moira/i,
-    /aaron/i,
-    /zira/i,
-    /jenny/i,
-    /aria/i,
-    /nova/i,
+    /google.*english/i, /en-in/i, /hi-in/i, /samantha/i, /daniel/i,
+    /karen/i, /moira/i, /aaron/i, /zira/i, /jenny/i, /aria/i, /nova/i,
   ];
 
   for (const matcher of preferredMatchers) {
@@ -200,7 +293,96 @@ function updateSpeakButtons() {
   });
 }
 
+function setComposerDragActive(active) {
+  const inputWrap = $('inputWrap');
+  if (!inputWrap) return;
+  inputWrap.classList.toggle('drag-active', !!active);
+}
+
+async function processSelectedFiles(files) {
+  for (const file of files) {
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      showToast(`File too large: ${file.name} (max ${MAX_FILE_SIZE_MB}MB)`);
+      continue;
+    }
+    const isImage = IMAGE_TYPES.includes(file.type);
+    const isDoc = DOC_TYPES.includes(file.type) || file.name.toLowerCase().endsWith('.txt');
+    if (!isImage && !isDoc) {
+      showToast(`Unsupported file type: ${file.name}`);
+      continue;
+    }
+    const entry = {
+      file,
+      type: isImage ? 'image' : 'doc',
+      base64: null,
+      uploaded: false,
+      previewUrl: null,
+      id: Date.now() + Math.random(),
+    };
+    state.pendingFiles.push(entry);
+    addAttachPreview(entry);
+    if (isImage) {
+      try {
+        entry.base64 = await fileToBase64(file);
+        entry.previewUrl = `data:${file.type};base64,${entry.base64}`;
+        updateAttachPreview(entry, 'done');
+      } catch (err) {
+        updateAttachPreview(entry, 'err');
+        showToast(`Failed to process image: ${file.name}`);
+      }
+    } else {
+      await uploadDocToBackend(entry);
+    }
+  }
+  const ab = $('attachmentsBar');
+  if (ab) ab.style.display = state.pendingFiles.length ? 'block' : 'none';
+}
+
+function initComposerDragDrop() {
+  const inputWrap = $('inputWrap');
+  if (!inputWrap) return;
+
+  document.addEventListener('dragover', event => { event.preventDefault(); });
+  document.addEventListener('drop', event => {
+    if (!inputWrap.contains(event.target)) event.preventDefault();
+  });
+
+  ['dragenter', 'dragover'].forEach(type => {
+    inputWrap.addEventListener(type, event => {
+      event.preventDefault();
+      event.stopPropagation();
+      state.dragDepth += 1;
+      setComposerDragActive(true);
+    });
+  });
+
+  ['dragleave', 'dragend'].forEach(type => {
+    inputWrap.addEventListener(type, event => {
+      event.preventDefault();
+      event.stopPropagation();
+      state.dragDepth = Math.max(0, state.dragDepth - 1);
+      if (state.dragDepth === 0) setComposerDragActive(false);
+    });
+  });
+
+  inputWrap.addEventListener('drop', async event => {
+    event.preventDefault();
+    event.stopPropagation();
+    state.dragDepth = 0;
+    setComposerDragActive(false);
+    const dropped = Array.from(event.dataTransfer?.files || []);
+    if (!dropped.length) return;
+    await processSelectedFiles(dropped);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  window.switchTab = switchTab;
+  window.doLogin = doLogin;
+  window.doSignup = doSignup;
+  window.continueAsGuest = continueAsGuest;
+  window.openForgotPasswordModal = openForgotPasswordModal;
+  
   loadSpeechVoices();
   if (window.speechSynthesis) {
     window.speechSynthesis.onvoiceschanged = () => loadSpeechVoices();
@@ -208,33 +390,39 @@ document.addEventListener('DOMContentLoaded', () => {
   initParticles();
   initMarked();
   loadTheme();
+  initComposerDragDrop();
 
-  const savedUser = localStorage.getItem('rag-user');
-  const isGuest   = localStorage.getItem('isGuest') === 'true';
-  const isAdmin   = localStorage.getItem('isAdmin') === 'true';
+  const launchParams = getLaunchParams();
+  autoGuest = launchParams.get('auto_guest') === '1';
+  const autoMic   = launchParams.get('auto_mic')   === '1';
 
-  if (savedUser) {
-    try {
-      state.user    = JSON.parse(savedUser);
-      state.token   = getStoredToken();
-      state.isAdmin = isAdmin;
-      showApp();
-    } catch {
-      localStorage.removeItem('rag-user');
-    }
-  } else if (isGuest) {
-    state.isGuest = true;
-    state.user    = { name: 'Guest', email: 'guest@aegis.ai' };
-    showApp();
+  const hasValidSession = restoreSession();
+
+if (hasValidSession && !window.location.search.includes("force_login")) {
+  showApp();
+} else {
+  const authScreen = document.getElementById('authScreen');
+  const appWrapper = document.getElementById('appWrapper');
+
+  if (authScreen) authScreen.style.display = 'flex';
+  if (appWrapper) appWrapper.style.display = 'none';
+}
+
+  if (autoMic) {
+    setTimeout(async () => {
+      clearLaunchParams();
+      if (!state.user && !state.isGuest) continueAsGuest();
+      if (window.location.protocol !== 'file:') {
+        try { await startVoiceRecording(); } catch (err) { console.error('Auto mic start failed:', err); }
+      }
+    }, 500);
+  } else if (launchParams.toString()) {
+    clearLaunchParams();
   }
 });
 
 function getStoredActiveChatId() {
-  try {
-    return localStorage.getItem(activeChatStorageKey()) || null;
-  } catch {
-    return null;
-  }
+  try { return localStorage.getItem(activeChatStorageKey()) || null; } catch { return null; }
 }
 
 function setStoredActiveChatId(chatId) {
@@ -245,27 +433,31 @@ function setStoredActiveChatId(chatId) {
 }
 
 async function loadFeatureConfig() {
+  if (state._featureLoading) return;
+  state._featureLoading = true;
   try {
     const res = await apiFetch('/api/features', { headers: getAuthHeaders() });
     if (!res || !res.ok) return;
     const data = await res.json();
     state.featureConfig = data;
-    const models = data.models || [];
-    const roleModes = data.role_modes || [];
+    const models          = data.models          || [];
+    const roleModes       = data.role_modes       || [];
     const promptTemplates = data.prompt_templates || [];
 
-    state.selectedModel = getStoredPreference('model', models[0] || null);
-    state.roleMode = getStoredPreference('role-mode', roleModes[0] || 'assistant');
-    state.promptTemplate = getStoredPreference('prompt-template', promptTemplates[0] || 'default');
-    state.voiceProfile = getStoredPreference('voice-profile', 'auto');
+    state.selectedModel    = getStoredPreference('model',                models[0]          || null);
+    state.roleMode         = getStoredPreference('role-mode',            roleModes[0]       || 'assistant');
+    state.promptTemplate   = getStoredPreference('prompt-template',      promptTemplates[0] || 'default');
+    state.voiceProfile     = getStoredPreference('voice-profile',        'auto');
     state.recognitionLanguage = getStoredPreference('recognition-language', 'auto');
-    state.voiceAssistantMode = getStoredPreference('voice-assistant', 'browser');
-    state.archivedChats = getObjectPreference('archived-chats');
-    state.pinnedChats = getObjectPreference('pinned-chats');
+    state.voiceAssistantMode  = getStoredPreference('voice-assistant',   'browser');
+    state.archivedChats    = getObjectPreference('archived-chats');
+    state.pinnedChats      = getObjectPreference('pinned-chats');
     updateTopbarStatus();
     syncSettingsUI();
   } catch (err) {
     console.error('Feature config load failed:', err);
+  } finally {
+    state._featureLoading = false;
   }
 }
 
@@ -289,15 +481,15 @@ function fillSelectWithOptions(id, values, selectedValue) {
 }
 
 function syncSettingsUI() {
-  fillSelectWithOptions('settingsRoleMode', state.featureConfig?.role_modes || ['assistant'], state.roleMode);
-  fillSelectWithOptions('settingsPromptTemplate', state.featureConfig?.prompt_templates || ['default'], state.promptTemplate);
-  const themeEl = $('settingsTheme');
-  const voiceEl = $('settingsVoiceProfile');
-  const recEl = $('settingsRecognitionLanguage');
+  fillSelectWithOptions('settingsRoleMode',      state.featureConfig?.role_modes       || ['assistant'], state.roleMode);
+  fillSelectWithOptions('settingsPromptTemplate', state.featureConfig?.prompt_templates || ['default'],   state.promptTemplate);
+  const themeEl     = $('settingsTheme');
+  const voiceEl     = $('settingsVoiceProfile');
+  const recEl       = $('settingsRecognitionLanguage');
   const assistantEl = $('settingsVoiceAssistant');
-  if (themeEl) themeEl.value = document.documentElement.dataset.theme || 'dark';
-  if (voiceEl) voiceEl.value = state.voiceProfile;
-  if (recEl) recEl.value = state.recognitionLanguage;
+  if (themeEl)     themeEl.value     = document.documentElement.dataset.theme || 'dark';
+  if (voiceEl)     voiceEl.value     = state.voiceProfile;
+  if (recEl)       recEl.value       = state.recognitionLanguage;
   if (assistantEl) assistantEl.value = state.voiceAssistantMode;
   renderArchivedChatsList();
 }
@@ -305,17 +497,13 @@ function syncSettingsUI() {
 function renderArchivedChatsList() {
   const wrap = $('archivedChatsList');
   if (!wrap) return;
-  const sessions = JSON.parse(localStorage.getItem(sessionsStorageKey()) || '[]');
+  const sessions        = JSON.parse(localStorage.getItem(sessionsStorageKey()) || '[]');
   const archivedEntries = Object.entries(state.archivedChats || {});
   const archived = archivedEntries.map(([id, meta]) => {
     const session = sessions.find(item => item.id === id);
     if (session) return session;
     if (meta && typeof meta === 'object') {
-      return {
-        id,
-        title: meta.title || 'Archived chat',
-        updated_at: meta.updated_at || new Date().toISOString(),
-      };
+      return { id, title: meta.title || 'Archived chat', updated_at: meta.updated_at || new Date().toISOString() };
     }
     return { id, title: 'Archived chat', updated_at: new Date().toISOString() };
   });
@@ -344,14 +532,7 @@ function shortModelLabel(model) {
   const value = String(model || '').trim();
   if (!value) return 'Default';
   if (value.length <= 20) return value;
-  return value
-    .replace('meta-llama/', '')
-    .replace('llama-', 'Llama ')
-    .replace('-versatile', '')
-    .replace('-instruct', '')
-    .replace(/-/g, ' ')
-    .trim()
-    .slice(0, 20);
+  return value.replace('meta-llama/', '').replace('llama-', 'Llama ').replace('-versatile', '').replace('-instruct', '').replace(/-/g, ' ').trim().slice(0, 20);
 }
 
 function prettyOptionLabel(value, type = '') {
@@ -376,13 +557,10 @@ function initParticles() {
 
   for (let i = 0; i < 55; i++) {
     particles.push({
-      x:  Math.random() * window.innerWidth,
-      y:  Math.random() * window.innerHeight,
-      r:  Math.random() * 1.4 + 0.3,
-      dx: (Math.random() - 0.5) * 0.28,
-      dy: (Math.random() - 0.5) * 0.28,
-      a:  Math.random(),
-      da: (Math.random() - 0.5) * 0.007,
+      x: Math.random() * window.innerWidth,  y: Math.random() * window.innerHeight,
+      r: Math.random() * 1.4 + 0.3,
+      dx: (Math.random() - 0.5) * 0.28,     dy: (Math.random() - 0.5) * 0.28,
+      a: Math.random(),                       da: (Math.random() - 0.5) * 0.007,
     });
   }
 
@@ -408,8 +586,8 @@ function initParticles() {
 function initMarked() {
   if (typeof marked === 'undefined') return;
   marked.setOptions({ breaks: true, gfm: true });
-  const renderer  = new marked.Renderer();
-  renderer.code   = (code, lang) => {
+  const renderer = new marked.Renderer();
+  renderer.code  = (code, lang) => {
     const id = 'c' + Math.random().toString(36).slice(2, 7);
     return `<pre><div class="pre-header"><span class="pre-lang">${lang || 'code'}</span><button class="pre-copy" onclick="copyCodeBlock(this,'${id}')">Copy</button></div><code id="${id}">${escHtml(code)}</code></pre>`;
   };
@@ -431,13 +609,10 @@ function renderMd(text) {
 function prepareAnswerText(text) {
   const value = String(text || '').trim();
   if (!value) return '';
-
   const looksLikeMarkdown = /(^|\n)\s*([-*]|#{1,6}|\d+\.)\s|```|\|/.test(value);
   if (looksLikeMarkdown || value.includes('\n\n')) return value;
-
   const sentences = value.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map(s => s.trim()).filter(Boolean) || [value];
   if (sentences.length < 3) return value;
-
   const chunks = [];
   for (let i = 0; i < sentences.length; i += 2) {
     chunks.push(sentences.slice(i, i + 2).join(' '));
@@ -460,33 +635,30 @@ function getUploadHeaders() {
   return h;
 }
 
-async function apiFetch(path, options = {}, retries = 3) {
+async function apiFetch(path, options = {}) {
   try {
-    const res = await fetch(`${API}${path}`, options);
-
+    const res = await fetch(apiUrl(path), options);
     if (res.status === 401) handleAuthError();
-
     return res;
-
   } catch (err) {
-    console.error("API Error:", err);
-
-    if (retries > 0) {
-      console.log("Retrying...", retries);
-      await new Promise(r => setTimeout(r, 2000));
-      return apiFetch(path, options, retries - 1);
+    if (err.name === 'TypeError' || err.message.includes('fetch')) {
+      throw new Error(`Cannot connect to server at ${apiDisplayBase()}`);
     }
-
     throw err;
   }
 }
 
 function handleAuthError() {
-  showToast('Session expired. Switching to guest mode.');
-  state.isGuest = true;
-  state.token   = null;
-  localStorage.setItem('isGuest', 'true');
-  localStorage.removeItem('rag-token');
+  clearStoredSession();
+  state.user = null;
+  state.token = null;
+  state.isGuest = false;
+  state.isAdmin = false;
+  showToast('Session expired. Please sign in again.');
+  const authScreen = $('authScreen');
+  const appWrapper = $('appWrapper');
+  if (authScreen) authScreen.style.display = 'flex';
+  if (appWrapper) appWrapper.style.display = 'none';
 }
 
 function switchTab(tab) {
@@ -503,8 +675,7 @@ function openForgotPasswordModal() {
   const err = $('forgotError');
   if (err) err.textContent = '';
   ['forgotEmail', 'forgotPassword', 'forgotPasswordConfirm'].forEach(id => {
-    const el = $(id);
-    if (el) el.value = '';
+    const el = $(id); if (el) el.value = '';
   });
   if (overlay) overlay.style.display = 'flex';
 }
@@ -515,35 +686,22 @@ function closeForgotPasswordModal() {
 }
 
 function recoverPassword() {
-  const email = $('forgotEmail')?.value.trim().toLowerCase();
+  const email    = $('forgotEmail')?.value.trim().toLowerCase();
   const password = $('forgotPassword')?.value || '';
-  const confirm = $('forgotPasswordConfirm')?.value || '';
-  const err = $('forgotError');
+  const confirm  = $('forgotPasswordConfirm')?.value || '';
+  const err      = $('forgotError');
   if (err) err.textContent = '';
 
-  if (!email || !password || !confirm) {
-    if (err) err.textContent = 'Please fill all fields.';
-    return;
-  }
-  if (password.length < 6) {
-    if (err) err.textContent = 'Password must be at least 6 characters.';
-    return;
-  }
-  if (password !== confirm) {
-    if (err) err.textContent = 'Passwords do not match.';
-    return;
-  }
+  if (!email || !password || !confirm) { if (err) err.textContent = 'Please fill all fields.'; return; }
+  if (password.length < 6)             { if (err) err.textContent = 'Password must be at least 6 characters.'; return; }
+  if (password !== confirm)            { if (err) err.textContent = 'Passwords do not match.'; return; }
   if (email === 'admin@aegis.ai' || email === 'demo@aegis.ai') {
-    if (err) err.textContent = 'Demo/Admin accounts use fixed demo credentials.';
-    return;
+    if (err) err.textContent = 'Demo/Admin accounts use fixed demo credentials.'; return;
   }
 
   const users = JSON.parse(localStorage.getItem('rag-users') || '[]');
   const index = users.findIndex(user => String(user.email || '').toLowerCase() === email);
-  if (index < 0) {
-    if (err) err.textContent = 'No local account found for that email.';
-    return;
-  }
+  if (index < 0) { if (err) err.textContent = 'No local account found for that email.'; return; }
 
   users[index] = { ...users[index], password };
   localStorage.setItem('rag-users', JSON.stringify(users));
@@ -554,123 +712,159 @@ function recoverPassword() {
 }
 
 function continueAsGuest() {
-  localStorage.setItem('isGuest', 'true');
-  localStorage.removeItem('isAdmin');
-  localStorage.removeItem('rag-token');
-  state.isGuest = true;
-  state.isAdmin = false;
-  state.token   = null;
-  state.user    = { name: 'Guest', email: 'guest@aegis.ai' };
+  persistGuestSession();
   showApp();
 }
 
+
+
 async function doLogin() {
-  const email    = $('loginEmail').value.trim();
+  const email = $('loginEmail').value.trim();
   const password = $('loginPassword').value;
-  const errEl    = $('loginError');
+  const errEl = $('loginError');
 
-  if (!email || !password) { errEl.textContent = 'Please fill all fields.'; return; }
+  if (!email || !password) {
+    errEl.textContent = 'Please fill all fields.';
+    return;
+  }
 
-  const btnText   = $('loginBtnText');
-  const spinner   = $('loginSpinner');
-  const loginBtn  = $('loginBtn');
-  if (btnText)  btnText.style.display  = 'none';
-  if (spinner)  spinner.style.display  = 'block';
-  if (loginBtn) loginBtn.disabled      = true;
+  const btnText = $('loginBtnText');
+  const spinner = $('loginSpinner');
+  const loginBtn = $('loginBtn');
+
+  if (btnText) btnText.style.display = 'none';
+  if (spinner) spinner.style.display = 'block';
+  if (loginBtn) loginBtn.disabled = true;
+
   errEl.textContent = '';
 
-  const isAdminLogin = (email === 'admin@aegis.ai'  && password === 'admin123');
-  const isDemoLogin  = (email === 'demo@aegis.ai'   && password === 'demo123');
-
-  if (isAdminLogin) {
-    localStorage.setItem('isAdmin', 'true');
-    localStorage.setItem('rag-token', ADMIN_TOKEN);
-    localStorage.removeItem('isGuest');
-    state.isAdmin = true;
-    state.token   = ADMIN_TOKEN;
-    loginSuccess({ name: 'Admin', email });
-    return;
-  }
-
-  if (isDemoLogin) {
-    localStorage.removeItem('isGuest');
-    localStorage.removeItem('isAdmin');
-    state.isAdmin = false;
-    state.token   = null;
-    loginSuccess({ name: 'Demo User', email });
-    return;
-  }
-
   try {
-    const res = await fetch(`${API}/api/auth/login`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email, password }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const tok  = data.access_token || data.token || null;
-      if (tok) {
-        state.token = tok;
-        localStorage.setItem('rag-token', tok);
-      }
+    const isAdminLogin = (email === 'admin@aegis.ai' && password === 'admin123');
+    const isDemoLogin = (email === 'demo@aegis.ai' && password === 'demo123');
+
+    if (isAdminLogin) {
+      localStorage.setItem('isAdmin', 'true');
       localStorage.removeItem('isGuest');
-      localStorage.removeItem('isAdmin');
-      loginSuccess(data.user || { name: email.split('@')[0], email });
+
+      state.isAdmin = true;
+      state.isGuest = false;
+      state.token = ADMIN_TOKEN;
+
+      localStorage.setItem('rag-token', ADMIN_TOKEN);
+
+      loginSuccess({ name: 'Admin', email });
       return;
     }
-  } catch {}
 
-  const users = JSON.parse(localStorage.getItem('rag-users') || '[]');
-  const user  = users.find(u => u.email === email && u.password === password);
+    if (isDemoLogin) {
+      state.token = "local-auth";
+      localStorage.setItem('rag-token', "local-auth");
 
-  if (!user) {
-    errEl.textContent = 'Invalid email or password.';
-    if (btnText)  btnText.style.display = 'block';
-    if (spinner)  spinner.style.display = 'none';
-    if (loginBtn) loginBtn.disabled     = false;
-    return;
+      localStorage.removeItem('isGuest');
+      localStorage.removeItem('isAdmin');
+
+      state.isAdmin = false;
+      state.isGuest = false;
+
+      loginSuccess({ name: 'Demo User', email });
+      return;
+    }
+
+    const users = JSON.parse(localStorage.getItem('rag-users') || '[]');
+    const user = users.find(u => u.email === email && u.password === password);
+
+    if (!user) {
+      errEl.textContent = 'Invalid email or password.';
+    } else {
+      state.token = "local-auth";
+      localStorage.setItem('rag-token', "local-auth");
+
+      localStorage.removeItem('isGuest');
+      localStorage.removeItem('isAdmin');
+      state.isAdmin = false;
+      state.isGuest = false;
+
+      loginSuccess(user);
+      return;
+    }
+
+  } catch (err) {
+    errEl.textContent = 'Login failed. Server error.';
   }
 
-  localStorage.removeItem('isGuest');
-  localStorage.removeItem('isAdmin');
-  loginSuccess(user);
+  if (btnText) btnText.style.display = 'block';
+  if (spinner) spinner.style.display = 'none';
+  if (loginBtn) loginBtn.disabled = false;
 }
 
 function doSignup() {
-  const name     = $('signupName').value.trim();
-  const email    = $('signupEmail').value.trim();
+  const name = $('signupName').value.trim();
+  const email = $('signupEmail').value.trim();
   const password = $('signupPassword').value;
-  const errEl    = $('signupError');
+  const errEl = $('signupError');
 
-  if (!name || !email || !password) { errEl.textContent = 'Fill all fields.'; return; }
-  if (password.length < 6)          { errEl.textContent = 'Password min 6 chars.'; return; }
-  if (!email.includes('@'))         { errEl.textContent = 'Invalid email.'; return; }
+  if (!name || !email || !password) {
+    errEl.textContent = 'Fill all fields.';
+    return;
+  }
+
+  if (password.length < 6) {
+    errEl.textContent = 'Password min 6 chars.';
+    return;
+  }
+
+  if (!email.includes('@')) {
+    errEl.textContent = 'Invalid email.';
+    return;
+  }
 
   const users = JSON.parse(localStorage.getItem('rag-users') || '[]');
-  if (users.find(u => u.email === email)) { errEl.textContent = 'Email already registered.'; return; }
+
+  if (users.find(u => u.email === email)) {
+    errEl.textContent = 'Email already registered.';
+    return;
+  }
 
   const newUser = { name, email, password };
   users.push(newUser);
+
   localStorage.setItem('rag-users', JSON.stringify(users));
   localStorage.removeItem('isGuest');
   localStorage.removeItem('isAdmin');
+
+  state.token = "local-auth";
+  localStorage.setItem('rag-token', "local-auth");
+  state.isAdmin = false;
+  state.isGuest = false;
+
   loginSuccess(newUser);
 }
 
 function loginSuccess(user) {
   state.user = user;
-  localStorage.setItem('rag-user', JSON.stringify(user));
+  state.isGuest = false;
+  state.isAdmin = state.isAdmin || user?.role === 'admin' || user?.email === 'admin@aegis.ai';
+  persistUser(user);
+
+  const btnText = $('loginBtnText');
+  const spinner = $('loginSpinner');
+  const loginBtn = $('loginBtn');
+
+  if (btnText) btnText.style.display = 'block';
+  if (spinner) spinner.style.display = 'none';
+  if (loginBtn) loginBtn.disabled = false;
+
   showApp();
 }
 
 function showApp() {
-  const authScreen = $('authScreen');
-  const appWrapper = $('appWrapper');
+  const authScreen = document.getElementById('authScreen');
+  const appWrapper = document.getElementById('appWrapper');
+
   if (authScreen) authScreen.style.display = 'none';
   if (appWrapper) appWrapper.style.display = 'flex';
 
-  const name     = state.user?.name || 'User';
+  const name = state.user?.name || 'User';
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
   const ua = $('userAvatar');
@@ -678,34 +872,40 @@ function showApp() {
   const un = $('userName');
   const ue = $('userEmail');
   const wt = $('welcomeTitle');
-  const pmn = $('profileMenuName');
+  const pm = $('profileMenuName');
   const pma = $('profileMenuAvatar');
+
   if (ua) ua.textContent = initials;
   if (pa) pa.textContent = initials;
   if (pma) pma.textContent = initials;
-  if (un) un.textContent = name;
-  if (pmn) pmn.textContent = name;
-  if (ue) ue.textContent = state.user?.email || '';
-  if (wt) wt.textContent = `Welcome${state.isGuest ? '' : ' back'}, ${name.split(' ')[0]}!`;
 
+  if (un) un.textContent = name;
+  if (pm) pm.textContent = name;
+
+  if (ue) ue.textContent = state.user?.email || '';
+
+  if (wt) wt.textContent = `Welcome ${state.isGuest ? '' : 'back, '}${name.split(' ')[0]}!`;
+  
   const guestBadge = $('guestBadge');
   const adminBadge = $('adminBadge');
+
   if (guestBadge) guestBadge.style.display = state.isGuest ? 'flex' : 'none';
   if (adminBadge) adminBadge.style.display = state.isAdmin ? 'flex' : 'none';
 
-  if (localStorage.getItem('rag-collapsed') === 'true') setSidebarCollapsed(true);
+  if (localStorage.getItem('rag-collapsed') === 'true') {
+    setSidebarCollapsed(true);
+  }
+
   loadFeatureConfig();
   updateStreamBadge();
+  loadTheme();
   loadHistory();
   loadIndexedSources();
-  loadTheme();
 }
 
+
 function doLogout() {
-  localStorage.removeItem('rag-user');
-  localStorage.removeItem('rag-token');
-  localStorage.removeItem('isGuest');
-  localStorage.removeItem('isAdmin');
+  clearStoredSession();
   state.user    = null;
   state.token   = null;
   state.isGuest = false;
@@ -749,8 +949,8 @@ function closeMobileSidebar() {
 }
 
 document.addEventListener('click', e => {
-  const menu    = $('profileMenu');
-  const profile = $('userProfile');
+  const menu     = $('profileMenu');
+  const profile  = $('userProfile');
   const chatMenu = $('chatMenu');
   if (menu && profile && !profile.contains(e.target) && !menu.contains(e.target)) {
     menu.style.display = 'none';
@@ -817,22 +1017,22 @@ function closeSettingsModal() {
 }
 
 function saveSettings() {
-  const role = $('settingsRoleMode')?.value || 'assistant';
-  const template = $('settingsPromptTemplate')?.value || 'default';
-  const theme = $('settingsTheme')?.value || 'dark';
-  const voice = $('settingsVoiceProfile')?.value || 'auto';
-  const recognition = $('settingsRecognitionLanguage')?.value || 'auto';
-  const voiceAssistant = $('settingsVoiceAssistant')?.value || 'browser';
-  state.roleMode = role;
-  state.promptTemplate = template;
-  state.voiceProfile = voice;
+  const role          = $('settingsRoleMode')?.value          || 'assistant';
+  const template      = $('settingsPromptTemplate')?.value    || 'default';
+  const theme         = $('settingsTheme')?.value             || 'dark';
+  const voice         = $('settingsVoiceProfile')?.value      || 'auto';
+  const recognition   = $('settingsRecognitionLanguage')?.value || 'auto';
+  const voiceAssistant = $('settingsVoiceAssistant')?.value   || 'browser';
+  state.roleMode           = role;
+  state.promptTemplate     = template;
+  state.voiceProfile       = voice;
   state.recognitionLanguage = recognition;
   state.voiceAssistantMode = voiceAssistant;
-  setStoredPreference('role-mode', role);
-  setStoredPreference('prompt-template', template);
-  setStoredPreference('voice-profile', voice);
-  setStoredPreference('recognition-language', recognition);
-  setStoredPreference('voice-assistant', voiceAssistant);
+  setStoredPreference('role-mode',             role);
+  setStoredPreference('prompt-template',       template);
+  setStoredPreference('voice-profile',         voice);
+  setStoredPreference('recognition-language',  recognition);
+  setStoredPreference('voice-assistant',       voiceAssistant);
   applyTheme(theme);
   closeSettingsModal();
   showToast('Settings saved ✓');
@@ -861,10 +1061,7 @@ function toggleHistoryExpanded() {
 }
 
 function togglePinCurrentChat() {
-  if (!state.chatId) {
-    showToast('Open a chat first.');
-    return;
-  }
+  if (!state.chatId) { showToast('Open a chat first.'); return; }
   state.pinnedChats[state.chatId] = !state.pinnedChats[state.chatId];
   if (!state.pinnedChats[state.chatId]) delete state.pinnedChats[state.chatId];
   setObjectPreference('pinned-chats', state.pinnedChats);
@@ -873,14 +1070,11 @@ function togglePinCurrentChat() {
 }
 
 function archiveCurrentChat() {
-  if (!state.chatId) {
-    showToast('Open a chat first.');
-    return;
-  }
+  if (!state.chatId) { showToast('Open a chat first.'); return; }
   const sessions = JSON.parse(localStorage.getItem(sessionsStorageKey()) || '[]');
-  const active = sessions.find(session => session.id === state.chatId);
+  const active   = sessions.find(session => session.id === state.chatId);
   state.archivedChats[state.chatId] = {
-    title: active?.title || state.lastQuery || 'Archived chat',
+    title:      active?.title      || state.lastQuery || 'Archived chat',
     updated_at: active?.updated_at || new Date().toISOString(),
   };
   setObjectPreference('archived-chats', state.archivedChats);
@@ -922,18 +1116,18 @@ function saveProfile() {
   localStorage.setItem('rag-users', JSON.stringify(users));
 
   state.user = updated;
-  localStorage.setItem('rag-user', JSON.stringify(updated));
+  persistUser(updated);
 
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-  const ua = $('userAvatar');
-  const pa = $('profileAvatarBig');
-  const un = $('userName');
+  const ua  = $('userAvatar');
+  const pa  = $('profileAvatarBig');
+  const un  = $('userName');
   const pmn = $('profileMenuName');
   const pma = $('profileMenuAvatar');
-  if (ua) ua.textContent = initials;
-  if (pa) pa.textContent = initials;
+  if (ua)  ua.textContent  = initials;
+  if (pa)  pa.textContent  = initials;
   if (pma) pma.textContent = initials;
-  if (un) un.textContent = name;
+  if (un)  un.textContent  = name;
   if (pmn) pmn.textContent = name;
   closeProfileModal();
   showToast('Profile updated ✓');
@@ -952,11 +1146,11 @@ function startNewChat() {
   const ab = document.getElementById('attachmentsBar');
   const vt = document.getElementById('voiceTranscript');
   const sc = $('shareChatBtn');
-  if (mi) mi.innerHTML         = '';
-  if (al) al.innerHTML         = '';
-  if (ab) ab.style.display     = 'none';
-  if (vt) vt.style.display     = 'none';
-  if (sc) sc.style.display     = 'none';
+  if (mi) mi.innerHTML     = '';
+  if (al) al.innerHTML     = '';
+  if (ab) ab.style.display = 'none';
+  if (vt) vt.style.display = 'none';
+  if (sc) sc.style.display = 'none';
   renderWelcome();
   document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
   closeMobileSidebar();
@@ -1029,16 +1223,20 @@ function useChip(btn) {
 }
 
 async function loadHistory() {
+  if (state._historyLoading) return;
+  state._historyLoading = true;
+
   const hl    = $('historyLoading');
   const he    = $('historyEmpty');
   const hlist = $('historyList');
-  if (hl)    hl.style.display    = 'flex';
-  if (he)    he.style.display    = 'none';
-  if (hlist) hlist.innerHTML     = '';
+  if (hl)    hl.style.display = 'flex';
+  if (he)    he.style.display = 'none';
+  if (hlist) hlist.innerHTML  = '';
 
   if (state.isGuest) {
     if (hl) hl.style.display = 'none';
     if (he) he.style.display = 'flex';
+    state._historyLoading = false;
     return;
   }
 
@@ -1050,6 +1248,7 @@ async function loadHistory() {
       const sessions = Array.isArray(data) ? data : (data.sessions || []);
       renderHistoryList(sessions);
       restoreActiveSession(sessions);
+      state._historyLoading = false;
       return;
     }
   } catch {}
@@ -1058,6 +1257,7 @@ async function loadHistory() {
   const sessions = JSON.parse(localStorage.getItem(sessionsStorageKey()) || '[]');
   renderHistoryList(sessions);
   restoreActiveSession(sessions);
+  state._historyLoading = false;
 }
 
 function restoreActiveSession(sessions) {
@@ -1071,30 +1271,27 @@ function restoreActiveSession(sessions) {
 
   const mi = document.getElementById('messagesInner');
   const alreadyShowingActiveChat =
-    state.chatId === match.id &&
-    !!mi &&
-    !!mi.children.length;
-
+    state.chatId === match.id && !!mi && !!mi.children.length;
   if (alreadyShowingActiveChat) return;
   loadSession(match);
 }
 
 function renderHistoryList(sessions) {
-  const hlist = $('historyList');
-  const he    = $('historyEmpty');
+  const hlist    = $('historyList');
+  const he       = $('historyEmpty');
   const moreWrap = $('historyMoreWrap');
-  const moreBtn = $('historyMoreBtn');
+  const moreBtn  = $('historyMoreBtn');
   if (!hlist) return;
   hlist.innerHTML = '';
   if (!sessions?.length) {
-    if (he) he.style.display = 'flex';
+    if (he)       he.style.display       = 'flex';
     if (moreWrap) moreWrap.style.display = 'none';
     return;
   }
   if (he) he.style.display = 'none';
   const visibleSessions = sessions.filter(session => !state.archivedChats?.[session.id]);
   if (!visibleSessions.length) {
-    if (he) he.style.display = 'flex';
+    if (he)       he.style.display       = 'flex';
     if (moreWrap) moreWrap.style.display = 'none';
     return;
   }
@@ -1107,22 +1304,22 @@ function renderHistoryList(sessions) {
   const limitedSessions = state.historyExpanded ? visibleSessions : visibleSessions.slice(0, 10);
   if (moreWrap && moreBtn) {
     moreWrap.style.display = visibleSessions.length > 10 ? 'block' : 'none';
-    moreBtn.textContent = state.historyExpanded ? 'Show less' : `Show more (${visibleSessions.length - 10})`;
+    moreBtn.textContent    = state.historyExpanded ? 'Show less' : `Show more (${visibleSessions.length - 10})`;
   }
 
   const groups = groupByDate(limitedSessions);
   for (const [label, items] of Object.entries(groups)) {
     if (!items.length) continue;
-    const lbl        = document.createElement('div');
-    lbl.className    = 'history-group-label';
-    lbl.textContent  = label;
+    const lbl       = document.createElement('div');
+    lbl.className   = 'history-group-label';
+    lbl.textContent = label;
     hlist.appendChild(lbl);
     items.forEach(s => {
-      const div        = document.createElement('div');
-      div.className    = 'history-item';
-      div.dataset.id   = s.id;
+      const div      = document.createElement('div');
+      div.className  = 'history-item';
+      div.dataset.id = s.id;
       if (state.chatId === s.id) div.classList.add('active');
-      div.innerHTML    = `
+      div.innerHTML  = `
         <svg class="chat-icon" width="13" height="13" viewBox="0 0 24 24" fill="none">
           <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2"/>
         </svg>
@@ -1182,7 +1379,7 @@ async function loadSession(session) {
     if (mi) mi.innerHTML = '';
     if (msgs.length === 0) renderWelcome();
     else msgs.forEach(m => {
-      if (m.role === 'user')      appendUserMsg(m.content, m.timestamp, []);
+      if (m.role === 'user')           appendUserMsg(m.content, m.timestamp, []);
       else if (m.role === 'assistant') appendAIMsg(m.content, {}, m.timestamp);
     });
   } catch {
@@ -1191,7 +1388,7 @@ async function loadSession(session) {
     const msgs = raw ? JSON.parse(raw) : [];
     if (msgs.length === 0) renderWelcome();
     else msgs.forEach(m => {
-      if (m.role === 'user')      appendUserMsg(m.content, m.timestamp, []);
+      if (m.role === 'user')           appendUserMsg(m.content, m.timestamp, []);
       else if (m.role === 'assistant') appendAIMsg(m.content, {}, m.timestamp);
     });
   }
@@ -1227,7 +1424,7 @@ async function deleteCurrentChat() {
   if (!state.chatId) return;
   closeChatMenu();
   const overlay = $('deleteChatOverlay');
-  const text = $('deleteChatText');
+  const text    = $('deleteChatText');
   if (text) {
     const active = JSON.parse(localStorage.getItem(sessionsStorageKey()) || '[]').find(session => session.id === state.chatId);
     text.textContent = `This will delete ${active?.title || 'this conversation'}.`;
@@ -1256,14 +1453,8 @@ async function deleteSession(e, id) {
   const key      = sessionsStorageKey();
   const sessions = JSON.parse(localStorage.getItem(key) || '[]').filter(s => s.id !== id);
   localStorage.setItem(key, JSON.stringify(sessions));
-  if (state.archivedChats?.[id]) {
-    delete state.archivedChats[id];
-    setObjectPreference('archived-chats', state.archivedChats);
-  }
-  if (state.pinnedChats?.[id]) {
-    delete state.pinnedChats[id];
-    setObjectPreference('pinned-chats', state.pinnedChats);
-  }
+  if (state.archivedChats?.[id]) { delete state.archivedChats[id]; setObjectPreference('archived-chats', state.archivedChats); }
+  if (state.pinnedChats?.[id])   { delete state.pinnedChats[id];   setObjectPreference('pinned-chats',   state.pinnedChats); }
   if (getStoredActiveChatId() === id) setStoredActiveChatId(null);
   renderHistoryList(sessions);
   if (state.chatId === id) startNewChat();
@@ -1272,43 +1463,8 @@ async function deleteSession(e, id) {
 
 async function handleFiles(input) {
   const files = Array.from(input.files || []);
-  for (const file of files) {
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      showToast(`File too large: ${file.name} (max ${MAX_FILE_SIZE_MB}MB)`);
-      continue;
-    }
-    const isImage = IMAGE_TYPES.includes(file.type);
-    const isDoc   = DOC_TYPES.includes(file.type) || file.name.toLowerCase().endsWith('.txt');
-    if (!isImage && !isDoc) {
-      showToast(`Unsupported file type: ${file.name}`);
-      continue;
-    }
-    const entry = {
-      file,
-      type:       isImage ? 'image' : 'doc',
-      base64:     null,
-      uploaded:   false,
-      previewUrl: null,
-      id:         Date.now() + Math.random(),
-    };
-    state.pendingFiles.push(entry);
-    addAttachPreview(entry);
-    if (isImage) {
-      try {
-        entry.base64      = await fileToBase64(file);
-        entry.previewUrl  = `data:${file.type};base64,${entry.base64}`;
-        updateAttachPreview(entry, 'done');
-      } catch (err) {
-        updateAttachPreview(entry, 'err');
-        showToast(`Failed to process image: ${file.name}`);
-      }
-    } else {
-      await uploadDocToBackend(entry);
-    }
-  }
+  await processSelectedFiles(files);
   input.value = '';
-  const ab = document.getElementById('attachmentsBar');
-  if (ab) ab.style.display = state.pendingFiles.length ? 'block' : 'none';
 }
 
 function addAttachPreview(entry) {
@@ -1345,7 +1501,7 @@ async function uploadDocToBackend(entry) {
   form.append('file', entry.file, entry.file.name);
 
   try {
-    const res = await fetch(`${API}/api/upload`, {
+    const res = await fetch(apiUrl('/api/upload'), {
       method:  'POST',
       headers: getUploadHeaders(),
       body:    form,
@@ -1358,9 +1514,9 @@ async function uploadDocToBackend(entry) {
       throw new Error(errMsg);
     }
 
-    const data   = await res.json();
+    const data     = await res.json();
     entry.uploadMeta = data;
-    entry.uploaded = true;
+    entry.uploaded   = true;
     updateAttachPreview(entry, 'done');
     const chunks = data.chunks || data.chunk_count || 0;
     showToast(`✓ ${entry.file.name} indexed (${chunks} chunks)`);
@@ -1384,15 +1540,17 @@ function buildAttachmentPayload(files) {
   return files
     .filter(f => f.type === 'doc' && f.uploadMeta)
     .map(f => ({
-      upload_id: f.uploadMeta.upload_id || null,
-      filename: f.uploadMeta.filename || f.file.name,
-      content_type: f.file.type || 'application/octet-stream',
-      kind: 'document',
+      upload_id:      f.uploadMeta.upload_id   || null,
+      filename:       f.uploadMeta.filename    || f.file.name,
+      content_type:   f.file.type              || 'application/octet-stream',
+      kind:           'document',
       extracted_text: f.uploadMeta.extracted_text || '',
     }));
 }
 
 async function loadIndexedSources() {
+  if (state._sourcesLoading) return;
+  state._sourcesLoading = true;
   try {
     const res = await apiFetch('/api/chat/sources', { headers: getAuthHeaders() });
     if (!res || !res.ok) return;
@@ -1407,12 +1565,15 @@ async function loadIndexedSources() {
   } catch {
     const ind = $('docsIndicator');
     if (ind) ind.style.display = 'none';
+  } finally {
+    state._sourcesLoading = false;
   }
 }
 
 async function toggleVoice() {
   if (window.location.protocol === 'file:') {
-    showToast('Open the app from http://127.0.0.1:8000 for microphone access.');
+    showToast('Opening the app server for microphone access...');
+    setTimeout(() => { window.location.href = `${apiDisplayBase()}?auto_guest=1&auto_mic=1`; }, 250);
     return;
   }
   if (state.recording) finishVoiceInput();
@@ -1428,15 +1589,11 @@ async function startVoiceRecording() {
     }
 
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
     });
-    state.voiceStream = stream;
+    state.voiceStream   = stream;
     state.liveTranscript = '';
-    state.audioChunks = [];
+    state.audioChunks   = [];
     state.audioMimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
       ? 'audio/webm;codecs=opus'
       : 'audio/webm';
@@ -1451,13 +1608,11 @@ async function startVoiceRecording() {
     const vs = $('voiceStatus');
     if (vb) vb.classList.add('recording');
     if (vt) vt.style.display = 'flex';
-    if (tt) tt.textContent = 'Listening... Speak now.';
-    if (vs) vs.textContent = 'Listening';
+    if (tt) tt.textContent   = 'Listening... Speak now.';
+    if (vs) vs.textContent   = 'Listening';
 
     recorder.ondataavailable = evt => {
-      if (evt.data && evt.data.size > 0) {
-        state.audioChunks.push(evt.data);
-      }
+      if (evt.data && evt.data.size > 0) state.audioChunks.push(evt.data);
     };
 
     recorder.onerror = evt => {
@@ -1474,27 +1629,22 @@ async function startVoiceRecording() {
 
 async function transcribeRecordedAudio() {
   const blob = new Blob(state.audioChunks || [], { type: state.audioMimeType || 'audio/webm' });
-  if (!blob.size) {
-    throw new Error('No speech detected. Please try again.');
-  }
+  if (!blob.size) throw new Error('No speech detected. Please try again.');
 
   const form = new FormData();
   const lang = detectSpeechLanguage(state.liveTranscript);
   form.append('audio', blob, `voice.${(state.audioMimeType || 'audio/webm').includes('mp4') ? 'm4a' : 'webm'}`);
   form.append('language', String(lang || '').slice(0, 2));
 
-  const res = await fetch(`${API}/voice/voice-chat`, {
-    method: 'POST',
+  const res = await fetch(apiUrl('/api/voice/voice-chat'), {
+    method:  'POST',
     headers: getUploadHeaders(),
-    body: form,
+    body:    form,
   });
 
   if (!res.ok) {
     let errMsg = `Voice transcription failed (${res.status})`;
-    try {
-      const data = await res.json();
-      errMsg = data.detail || data.message || errMsg;
-    } catch {}
+    try { const data = await res.json(); errMsg = data.detail || data.message || errMsg; } catch {}
     throw new Error(errMsg);
   }
 
@@ -1509,33 +1659,24 @@ async function finishVoiceInput() {
   if (tt) tt.textContent = 'Transcribing audio...';
   if (vs) vs.textContent = 'Processing';
 
-  state.recording = false;
+  state.recording      = false;
   state.voiceSubmitting = true;
   const recorder = state.mediaRecorder;
-  if (!recorder) {
-    state.voiceSubmitting = false;
-    resetVoiceUI();
-    return;
-  }
+  if (!recorder) { state.voiceSubmitting = false; resetVoiceUI(); return; }
 
   await new Promise(resolve => {
     recorder.onstop = () => resolve(null);
     try {
       if (recorder.state !== 'inactive') recorder.stop();
       else resolve(null);
-    } catch {
-      resolve(null);
-    };
+    } catch { resolve(null); }
   });
 
   try {
     const transcript = await transcribeRecordedAudio();
     if (!transcript) throw new Error('No speech detected. Please try again.');
     const ui = document.getElementById('userInput');
-    if (ui) {
-      ui.value = transcript;
-      growInput(ui);
-    }
+    if (ui) { ui.value = transcript; growInput(ui); }
     resetVoiceUI();
     await sendMessage();
   } catch (err) {
@@ -1553,15 +1694,13 @@ function resetVoiceUI() {
   const vs = $('voiceStatus');
   if (vb) vb.classList.remove('recording');
   if (vt) vt.style.display = 'none';
-  if (tt) tt.textContent = 'Speak now…';
-  if (vs) vs.textContent = 'Listening';
-  state.liveTranscript = '';
+  if (tt) tt.textContent   = 'Speak now…';
+  if (vs) vs.textContent   = 'Listening';
+  state.liveTranscript  = '';
   state.voiceRetryCount = 0;
-  state.audioChunks = [];
+  state.audioChunks     = [];
   if (state.mediaRecorder) {
-    try {
-      if (state.mediaRecorder.state !== 'inactive') state.mediaRecorder.stop();
-    } catch {}
+    try { if (state.mediaRecorder.state !== 'inactive') state.mediaRecorder.stop(); } catch {}
     state.mediaRecorder = null;
   }
   if (state.voiceStream) {
@@ -1582,8 +1721,8 @@ function showVoiceError(message) {
   state.recording = false;
   if (vb) vb.classList.remove('recording');
   if (vt) vt.style.display = 'flex';
-  if (vs) vs.textContent = 'Voice unavailable';
-  if (tt) tt.textContent = message;
+  if (vs) vs.textContent   = 'Voice unavailable';
+  if (tt) tt.textContent   = message;
   if (state.speechRecognition) {
     try { state.speechRecognition.abort(); } catch {}
     state.speechRecognition = null;
@@ -1592,9 +1731,7 @@ function showVoiceError(message) {
 
 function cancelVoice() {
   if (state.mediaRecorder) {
-    try {
-      if (state.mediaRecorder.state !== 'inactive') state.mediaRecorder.stop();
-    } catch {}
+    try { if (state.mediaRecorder.state !== 'inactive') state.mediaRecorder.stop(); } catch {}
   }
   if (state.speechRecognition) {
     try { state.speechRecognition.abort(); } catch {}
@@ -1618,33 +1755,24 @@ function speakText(text, msgId = '') {
   }
 
   window.speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance(text);
+  const utt   = new SpeechSynthesisUtterance(text);
   const voice = pickPreferredVoice();
   if (voice) utt.voice = voice;
-  utt.lang = detectSpeechLanguage(text);
-  utt.rate = 1.02;
-  utt.pitch = 1.0;
+  utt.lang   = detectSpeechLanguage(text);
+  utt.rate   = 1.02;
+  utt.pitch  = 1.0;
   utt.volume = 1;
 
   state.speakingMessageId = msgId || null;
   updateSpeakButtons();
 
-  utt.onend = () => {
-    state.speakingMessageId = null;
-    updateSpeakButtons();
-  };
-  utt.onerror = err => {
-    console.warn('TTS error:', err);
-    state.speakingMessageId = null;
-    updateSpeakButtons();
-  };
+  utt.onend = () => { state.speakingMessageId = null; updateSpeakButtons(); };
+  utt.onerror = err => { console.warn('TTS error:', err); state.speakingMessageId = null; updateSpeakButtons(); };
 
   window.speechSynthesis.speak(utt);
 }
 
-function speak(text) {
-  speakText(text);
-}
+function speak(text) { speakText(text); }
 
 function toggleStreamMode() {
   state.streamMode = !state.streamMode;
@@ -1671,7 +1799,7 @@ function handleKey(e) {
 }
 
 async function sendMessage() {
-  const inp = document.getElementById('userInput');
+  const inp      = document.getElementById('userInput');
   if (!inp) return;
   const text     = inp.value.trim();
   const hasFiles = state.pendingFiles.length > 0;
@@ -1682,7 +1810,9 @@ async function sendMessage() {
     state.currentStream.abort();
     return;
   }
-  if (state.loading) return;
+
+  if (state.loading || state._sendLock) return;
+  state._sendLock = true;
 
   if (!state.chatId) {
     state.chatId = 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
@@ -1691,19 +1821,20 @@ async function sendMessage() {
   const ws = $('welcomeState');
   if (ws) ws.remove();
 
-  const query  = text || 'Please analyze the attached file(s).';
-  const files  = [...state.pendingFiles];
-  const currentImages = files.filter(f => f.type === 'image' && f.base64);
-  const currentAttachments = buildAttachmentPayload(files);
+  const query               = text || 'Please analyze the attached file(s).';
+  const files               = [...state.pendingFiles];
+  const currentImages       = files.filter(f => f.type === 'image' && f.base64);
+  const currentAttachments  = buildAttachmentPayload(files);
   const hasCurrentUploadContext = currentImages.length > 0 || currentAttachments.length > 0;
-  const useRecentContext = !hasCurrentUploadContext && queryRefersToRecentUpload(query);
-  const images = hasCurrentUploadContext ? currentImages : (useRecentContext ? (state.recentImages || []) : []);
-  const attachments = hasCurrentUploadContext ? currentAttachments : (useRecentContext ? (state.recentAttachments || []) : []);
-  state.lastQuery  = query;
-  state.lastImages = images;
+  const useRecentContext    = !hasCurrentUploadContext && queryRefersToRecentUpload(query);
+  const images              = hasCurrentUploadContext ? currentImages : (useRecentContext ? (state.recentImages || []) : []);
+  const attachments         = hasCurrentUploadContext ? currentAttachments : (useRecentContext ? (state.recentAttachments || []) : []);
+
+  state.lastQuery       = query;
+  state.lastImages      = images;
   state.lastAttachments = attachments;
   if (hasCurrentUploadContext) {
-    state.recentImages = currentImages;
+    state.recentImages      = currentImages;
     state.recentAttachments = currentAttachments;
   }
 
@@ -1720,8 +1851,12 @@ async function sendMessage() {
   if (ab) ab.style.display = 'none';
   scrollDown();
 
-  if (state.streamMode) await sendStreaming(query, images, attachments);
-  else                  await sendBatch(query, images, attachments);
+  try {
+    if (state.streamMode) await sendStreaming(query, images, attachments);
+    else                  await sendBatch(query, images, attachments);
+  } finally {
+    state._sendLock = false;
+  }
 }
 
 function buildImagePayload(images) {
@@ -1740,26 +1875,30 @@ async function sendStreaming(query, images, attachments = []) {
   let fullText        = '';
   let sources         = [];
   let meta            = {};
+  let fallbackAttempted = false;
 
   try {
     const body = {
       query,
-      chat_id: state.chatId,
-      user:    state.user?.name || 'User',
-      model: state.selectedModel,
-      role_mode: state.roleMode,
-      prompt_template: state.promptTemplate,
+      chat_id:          state.chatId,
+      user:             state.user?.name || 'User',
+      model:            state.selectedModel,
+      role_mode:        state.roleMode,
+      prompt_template:  state.promptTemplate,
       use_hybrid_search: true,
     };
-    if (images.length > 0) body.images = buildImagePayload(images);
+    if (images.length      > 0) body.images      = buildImagePayload(images);
     if (attachments.length > 0) body.attachments = attachments;
 
-    const res = await fetch(`${API}/api/stream`, {
+    const res = await fetch(apiUrl('/api/stream'), {
       method:  'POST',
       headers: getAuthHeaders(),
       body:    JSON.stringify(body),
       signal:  controller.signal,
     });
+    if (!res.ok) {
+  throw new Error(`Stream failed: ${res.status}`);
+}
 
     if (res.status === 401) { handleAuthError(); throw new Error('Unauthorized'); }
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -1782,65 +1921,52 @@ async function sendStreaming(query, images, attachments = []) {
         if (!raw || raw === '[DONE]') continue;
 
         try {
-          const data = JSON.parse(raw);
+          const data  = JSON.parse(raw);
           const token = data.token || data.text || data.content || '';
-          if (token) {
-            fullText += token;
-            updateStreamBubble(aiDiv, fullText);
-          }
+          if (token) { fullText += token; updateStreamBubble(aiDiv, fullText); }
           if (data.response || data.answer) {
             fullText = data.response || data.answer;
             sources  = data.sources || [];
-            meta = { ...meta, ...data };
+            meta     = { ...meta, ...data };
             updateStreamBubble(aiDiv, fullText);
           }
           if (data.sources) sources = data.sources;
-          if (data.done) {
-            sources = data.sources || sources;
-            meta = { ...meta, ...data };
-          }
+          if (data.done)    { sources = data.sources || sources; meta = { ...meta, ...data }; }
           if (data.error)   throw new Error(data.error);
         } catch (jsonErr) {
-if (raw) {
-    try {
-        const parsed = JSON.parse(raw);
-
-         if (parsed && typeof parsed === "object"){
-            if (parsed.response) {
-                fullText += parsed.response;
-            } else if (parsed.token) {
-                fullText += parsed.token;
-            } else {
-                fullText += "";
+          if (raw && typeof raw === 'string' && raw.length < 2000) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (parsed && typeof parsed === 'object') {
+                if (parsed.response) fullText += parsed.response;
+                else if (parsed.token) fullText += parsed.token;
+              } else if (typeof parsed === 'string') {
+                fullText += parsed;
+              }
+            } catch {
+              if (!raw.startsWith('{') && !raw.startsWith('[')) fullText += raw;
             }
-        } else {
-            fullText += parsed;
-        }
-
-    } catch {
-        fullText += raw;
-    }
-
-    updateStreamBubble(aiDiv, fullText);
-}
+            updateStreamBubble(aiDiv, fullText);
+          }
         }
       }
     }
 
     if (!fullText.trim()) {
       aiDiv.remove();
+      fallbackAttempted = true;
       await sendBatch(query, images, attachments);
       return;
     }
 
     finalizeStreamBubble(aiDiv, fullText, {
       sources,
-      route: meta.route || 'stream',
-      model: meta.model || state.selectedModel,
-      usage: meta.usage || {},
-      roleMode: meta.role_mode || state.roleMode,
+      route:          meta.route          || 'stream',
+      model:          meta.model          || state.selectedModel,
+      usage:          meta.usage          || {},
+      roleMode:       meta.role_mode      || state.roleMode,
       promptTemplate: meta.prompt_template || state.promptTemplate,
-      retrieval: meta.retrieval || {},
+      retrieval:      meta.retrieval       || {},
     });
     saveMsgLocal(state.chatId, 'assistant', fullText);
     saveSessionAfterSend(query);
@@ -1852,24 +1978,26 @@ if (raw) {
       const bubble = aiDiv.querySelector('.bubble-ai');
       if (bubble && bubble.innerText.trim()) {
         const body = aiDiv.querySelector('.ai-body');
-        if (body) {
-          body.appendChild(buildMetaRow(aiDiv.id, bubble.innerText, { sources: [], route: 'stream' }));
-        }
+        if (body) body.appendChild(buildMetaRow(aiDiv.id, bubble.innerText, { sources: [], route: 'stream' }));
         saveMsgLocal(state.chatId, 'assistant', bubble.innerText);
         saveSessionAfterSend(query);
       }
-    } else {
-      console.error('Stream error:', err);
-      if (!fullText.trim()) {
-        aiDiv.remove();
-        await sendBatch(query, images, attachments);
-        return;
-      }
-      const bubble = aiDiv.querySelector('.bubble-ai');
-      const cursor = aiDiv.querySelector('.streaming-cursor');
-      if (cursor) cursor.remove();
-      showToast(`Stream error: ${err.message}`);
-    }
+   } else {
+  console.error('Stream error:', err);
+
+  if (!fallbackAttempted) {
+    aiDiv.remove();
+    fallbackAttempted = true;
+    await sendBatch(query, images, attachments);
+    return;
+  }
+
+  const cursor = aiDiv.querySelector('.streaming-cursor');
+  if (cursor) cursor.remove();
+
+  showToast(`Stream error: ${err.message}`);
+}
+      
   } finally {
     setLoading(false, false);
     state.currentStream = null;
@@ -1883,15 +2011,15 @@ async function sendBatch(query, images, attachments = []) {
 
   try {
     const body = {
-      query:   query,
-      chat_id: state.chatId,
-      user:    state.user?.name || 'User',
-      model: state.selectedModel,
-      role_mode: state.roleMode,
-      prompt_template: state.promptTemplate,
+      query,
+      chat_id:          state.chatId,
+      user:             state.user?.name || 'User',
+      model:            state.selectedModel,
+      role_mode:        state.roleMode,
+      prompt_template:  state.promptTemplate,
       use_hybrid_search: true,
     };
-    if (images.length > 0) body.images = buildImagePayload(images);
+    if (images.length      > 0) body.images      = buildImagePayload(images);
     if (attachments.length > 0) body.attachments = attachments;
 
     const res = await apiFetch('/api/chat', {
@@ -1906,7 +2034,7 @@ async function sendBatch(query, images, attachments = []) {
       throw new Error(errMsg);
     }
 
-    const data   = await res.json();
+    const data    = await res.json();
     typer.remove();
 
     const answer  = data.response || data.answer || data.message || data.content || '';
@@ -1918,11 +2046,11 @@ async function sendBatch(query, images, attachments = []) {
     appendAIMsg(answer, {
       sources,
       route,
-      model: data.model || state.selectedModel,
-      usage: data.usage || {},
-      roleMode: data.role_mode || state.roleMode,
+      model:          data.model          || state.selectedModel,
+      usage:          data.usage          || {},
+      roleMode:       data.role_mode      || state.roleMode,
       promptTemplate: data.prompt_template || state.promptTemplate,
-      retrieval: data.retrieval || {},
+      retrieval:      data.retrieval       || {},
     });
     saveMsgLocal(state.chatId, 'assistant', answer);
     saveSessionAfterSend(query);
@@ -1930,7 +2058,7 @@ async function sendBatch(query, images, attachments = []) {
   } catch (err) {
     if (typer && typer.remove) typer.remove();
     console.error('Batch error:', err);
-    appendAIMsg(`⚠️ **Error:** ${escHtml(err.message)}\n\nPlease check if the backend is running at \`${API}\``, { sources: [], route: 'error' });
+    appendAIMsg(`⚠️ **Error:** ${escHtml(err.message)}\n\nPlease check if the backend is reachable at \`${apiDisplayBase()}\``, { sources: [], route: 'error' });
   } finally {
     setLoading(false, false);
     scrollDown();
@@ -1942,7 +2070,6 @@ function saveSessionAfterSend(query) {
   saveSessionLocal(state.chatId, title);
   const sc = $('shareChatBtn');
   if (sc) sc.style.display = 'flex';
-  loadHistory();
 }
 
 function appendUserMsg(text, timestamp, images) {
@@ -1950,7 +2077,7 @@ function appendUserMsg(text, timestamp, images) {
   if (!mi) return;
   const div     = document.createElement('div');
   div.className = 'msg-group msg-user';
-  div.id = 'user-' + Date.now();
+  div.id        = 'user-' + Date.now();
   const imgs    = (images || [])
     .filter(img => img.previewUrl)
     .map(img => `<img class="msg-img" src="${img.previewUrl}" alt="attachment" onclick="openImagePreview('${img.previewUrl}')"/>`)
@@ -1976,15 +2103,12 @@ function copyUserMsgText(btn, msgId) {
   navigator.clipboard.writeText(el.innerText).then(() => {
     btn.classList.add('ok');
     btn.textContent = '✓ Copied';
-    setTimeout(() => {
-      btn.classList.remove('ok');
-      btn.textContent = 'Copy';
-    }, 1800);
+    setTimeout(() => { btn.classList.remove('ok'); btn.textContent = 'Copy'; }, 1800);
   }).catch(() => showToast('Copy failed'));
 }
 
 function editUserMsg(msgId) {
-  const el = document.getElementById(msgId)?.querySelector('.user-msg-text');
+  const el    = document.getElementById(msgId)?.querySelector('.user-msg-text');
   const input = $('userInput');
   if (!el || !input) return;
   input.value = el.innerText;
@@ -1995,17 +2119,17 @@ function editUserMsg(msgId) {
 
 function openImagePreview(src) {
   const overlay = $('imagePreviewOverlay');
-  const image = $('imagePreviewLarge');
+  const image   = $('imagePreviewLarge');
   if (!overlay || !image || !src) return;
-  image.src = src;
-  overlay.style.display = 'flex';
+  image.src              = src;
+  overlay.style.display  = 'flex';
 }
 
 function closeImagePreview() {
   const overlay = $('imagePreviewOverlay');
-  const image = $('imagePreviewLarge');
+  const image   = $('imagePreviewLarge');
   if (overlay) overlay.style.display = 'none';
-  if (image) image.src = '';
+  if (image)   image.src             = '';
 }
 
 function appendAIMsgStreaming() {
@@ -2042,10 +2166,7 @@ function updateStreamBubble(div, text) {
 
 function finalizeStreamBubble(div, text, meta) {
   const bubble = div.querySelector('.bubble-ai');
-  if (bubble) {
-    bubble.classList.remove('thinking-bubble');
-    bubble.innerHTML = renderMd(text);
-  }
+  if (bubble) { bubble.classList.remove('thinking-bubble'); bubble.innerHTML = renderMd(text); }
   const body = div.querySelector('.ai-body');
   if (body) {
     body.appendChild(buildMetaRow(div.id, text, meta));
@@ -2059,10 +2180,10 @@ function appendAIMsg(text, meta = {}, timestamp) {
   div.className = 'msg-group msg-ai';
   div.id        = id;
 
-  const body    = document.createElement('div');
+  const body     = document.createElement('div');
   body.className = 'ai-body';
 
-  const bubble    = document.createElement('div');
+  const bubble     = document.createElement('div');
   bubble.className = 'bubble-ai';
   bubble.innerHTML = renderMd(text);
   body.appendChild(bubble);
@@ -2110,7 +2231,7 @@ function buildMetaRow(msgId, text, meta, timestamp) {
       </svg>
       Regenerate
     </button>
-    <button class="action-btn speak-btn" data-msg-id="${msgId}" onclick="speakText(document.getElementById('${msgId}')?.querySelector('.bubble-ai')?.innerText||'', '${msgId}')">
+    <button class="action-btn speak-btn" data-msg-id="${msgId}" onclick="speakText(document.getElementById('${msgId}')?.querySelector('.bubble-ai')?.innerText||'','${msgId}')">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -2197,24 +2318,18 @@ function openShare(msgId) {
 }
 
 function openCurrentChatShare() {
-  if (!state.chatId) {
-    showToast('Open a chat first.');
-    return;
-  }
+  if (!state.chatId) { showToast('Open a chat first.'); return; }
   const messages = Array.from(document.querySelectorAll('.msg-group')).map(node => node.innerText.trim()).filter(Boolean);
-  if (!messages.length) {
-    showToast('No messages to share yet.');
-    return;
-  }
+  if (!messages.length) { showToast('No messages to share yet.'); return; }
   const sessions = JSON.parse(localStorage.getItem(sessionsStorageKey()) || '[]');
-  const active = sessions.find(session => session.id === state.chatId);
+  const active   = sessions.find(session => session.id === state.chatId);
   state.shareText = messages.join('\n\n');
   const sp = $('sharePreview');
   const so = $('shareModalOverlay');
   if (sp) {
-    const title = active?.title || 'Current conversation';
+    const title   = active?.title || 'Current conversation';
     const preview = state.shareText.slice(0, 420) + (state.shareText.length > 420 ? '…' : '');
-    sp.innerHTML = `<strong>${escHtml(title)}</strong><br><br>${escHtml(preview).replace(/\n/g, '<br>')}`;
+    sp.innerHTML  = `<strong>${escHtml(title)}</strong><br><br>${escHtml(preview).replace(/\n/g, '<br>')}`;
   }
   if (so) so.style.display = 'flex';
 }
@@ -2250,7 +2365,7 @@ function giveFeedback(btn, rating) {
 }
 
 async function regenerate(msgId) {
-  if (!state.lastQuery || state.loading) return;
+  if (!state.lastQuery || state.loading || state._sendLock) return;
   const el = document.getElementById(msgId);
   if (el) el.remove();
   if (state.streamMode) await sendStreaming(state.lastQuery, state.lastImages || [], state.lastAttachments || []);
@@ -2281,7 +2396,7 @@ async function loadAnalytics() {
   if (refreshBtn) refreshBtn.classList.add('spinning');
 
   try {
-    const res = await fetch(`${API}/analytics`, {
+    const res = await fetch(apiUrl('/api/analytics'), {
       headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` },
     });
 
@@ -2387,10 +2502,10 @@ function scrollDown() {
 function showToast(msg, duration) {
   const existing = document.querySelector(`.toast[data-msg="${CSS.escape(msg)}"]`);
   if (existing) return;
-  const el        = document.createElement('div');
-  el.className    = 'toast';
-  el.textContent  = msg;
-  el.dataset.msg  = msg;
+  const el       = document.createElement('div');
+  el.className   = 'toast';
+  el.textContent = msg;
+  el.dataset.msg = msg;
   document.body.appendChild(el);
   setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, duration || 3200);
 }
