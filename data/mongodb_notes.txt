@@ -1,0 +1,1 @@
+MongoDB is a document-oriented NoSQL database often used for session memory, chat history, and application state where flexible JSON-like documents are useful.

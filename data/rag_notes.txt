@@ -1,0 +1,1 @@
+Retrieval augmented generation combines a retriever with a language model. The retriever fetches relevant knowledge and the language model uses that knowledge to produce grounded answers.

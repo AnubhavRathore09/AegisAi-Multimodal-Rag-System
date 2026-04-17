@@ -1,0 +1,5 @@
+[2026-04-11 16:49:31,155] [INFO] [src.db.mongo] MongoDB connected to mongodb://localhost:27017/
+[2026-04-11 16:55:01,594] [INFO] [src.db.mongo] MongoDB connected to mongodb://localhost:27017/
+[2026-04-11 17:01:29,452] [INFO] [src.db.mongo] MongoDB connected to mongodb://localhost:27017/
+[2026-04-11 17:03:25,231] [INFO] [src.rag.rag_pipeline] Incoming query: Hello
+[2026-04-11 17:03:25,917] [INFO] [src.llms.groq_client] LLM response generated
