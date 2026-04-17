@@ -25,6 +25,7 @@ GREETING_PATTERN = re.compile(
     r"^\s*(hi+|hello+|hey+|hii+|heyy+|yo+|hola+|namaste+|good\s+(morning|afternoon|evening))\s*!*\s*$",
     re.IGNORECASE,
 )
+PREVIOUS_CHAT_PATTERN = re.compile(r"\b(previous|earlier|last)\s+(chat|conversation|session)\b", re.IGNORECASE)
 
 
 @dataclass
@@ -157,6 +158,10 @@ def _memory_block(history: list[dict[str, str]]) -> str:
     return "\n".join(parts)
 
 
+def _query_refers_to_previous_chat(query: str) -> bool:
+    return bool(PREVIOUS_CHAT_PATTERN.search(str(query or "")))
+
+
 def _build_prompt(query: str, context: str, prompt_template: str, memory_text: str, bot_name: str) -> str:
     style = {
         "default": "Use short readable paragraphs and bullets only when they help.",
@@ -264,6 +269,11 @@ async def _plan_pipeline(request: ChatRequest, user_id: str | None = None) -> Pi
     role_mode = _clean_role_mode(request.role_mode)
     prompt_template = _clean_prompt_template(request.prompt_template)
     history = await asyncio.to_thread(memory_store.load_history, user_id or "", session_id)
+    cross_chat_history = (
+        await asyncio.to_thread(memory_store.load_recent_messages_across_sessions, user_id or "", session_id)
+        if _query_refers_to_previous_chat(query)
+        else []
+    )
     decision = await query_router.route(request, history_count=len(history))
     plan = query_agent.build_plan(decision.route, bool(history), bool(request.attachments), bool(request.images))
     bot_name = await asyncio.to_thread(memory_store.get_bot_name, user_id)
@@ -361,10 +371,15 @@ async def _plan_pipeline(request: ChatRequest, user_id: str | None = None) -> Pi
             retrieval["top_score"] = 0.0
             warnings.append("retrieval_skipped_low_confidence")
 
-    use_memory = (decision.use_memory or plan.use_memory) and bool(history)
+    merged_history = list(history)
+    if cross_chat_history:
+        merged_history = cross_chat_history + merged_history
+    use_memory = (decision.use_memory or plan.use_memory or bool(cross_chat_history)) and bool(merged_history)
     if decision.use_memory and not history:
         warnings.append("memory_route_without_history")
-    memory_text = _memory_block(history if use_memory else [])
+    if cross_chat_history:
+        warnings.append("cross_chat_memory_used")
+    memory_text = _memory_block(merged_history if use_memory else [])
     used_rag = bool(context) or (request.force_rag and decision.route in {"rag", "multimodal"})
     prompt = _build_prompt(query, context if used_rag else "", prompt_template, memory_text, bot_name)
 
@@ -377,7 +392,7 @@ async def _plan_pipeline(request: ChatRequest, user_id: str | None = None) -> Pi
         route_source=decision.source,
         route_fallback=decision.fallback,
         prompt=prompt,
-        history=history if use_memory else [],
+        history=merged_history if use_memory else [],
         user_id=user_id,
         bot_name=bot_name,
         agent_plan=query_agent.debug_payload(plan),

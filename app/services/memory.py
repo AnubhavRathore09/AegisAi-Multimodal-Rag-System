@@ -197,6 +197,65 @@ class ChatMemoryStore:
             for doc in docs
         ]
 
+    def load_recent_messages_across_sessions(
+        self,
+        user_id: str,
+        current_session_id: str,
+        session_limit: int = 3,
+        message_limit: int = 12,
+    ) -> list[dict[str, str]]:
+        if not user_id:
+            return []
+
+        docs: list[dict[str, Any]] = []
+        if self._messages is not None:
+            session_ids = [
+                session_id
+                for session_id in self._messages.distinct("session_id", {"user_id": user_id})
+                if session_id != current_session_id
+            ]
+            ordered_sessions: list[tuple[str, datetime | Any]] = []
+            for session_id in session_ids:
+                latest = self._messages.find_one(
+                    {"user_id": user_id, "session_id": session_id},
+                    {"_id": 0, "created_at": 1},
+                    sort=[("created_at", DESCENDING)],
+                )
+                if latest is None:
+                    continue
+                ordered_sessions.append((session_id, latest.get("created_at")))
+            ordered_sessions.sort(key=lambda item: item[1] or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+            chosen_ids = [item[0] for item in ordered_sessions[:session_limit]]
+            if chosen_ids:
+                docs = list(
+                    self._messages.find({"user_id": user_id, "session_id": {"$in": chosen_ids}}, {"_id": 0})
+                    .sort("created_at", DESCENDING)
+                    .limit(message_limit)
+                )
+                docs.reverse()
+        else:
+            sessions = self._fallback_messages.get(user_id, {})
+            ordered = sorted(
+                [
+                    (session_id, messages[-1].get("created_at"))
+                    for session_id, messages in sessions.items()
+                    if session_id != current_session_id and messages
+                ],
+                key=lambda item: item[1] or datetime.min.replace(tzinfo=timezone.utc),
+                reverse=True,
+            )
+            chosen_ids = [item[0] for item in ordered[:session_limit]]
+            for session_id in reversed(chosen_ids):
+                docs.extend(sessions.get(session_id, [])[-message_limit:])
+
+        return [
+            {
+                "role": str(doc.get("role", "user")),
+                "content": str(doc.get("content", "")),
+            }
+            for doc in docs[-message_limit:]
+        ]
+
     def delete_session(self, user_id: str, session_id: str) -> None:
         if not user_id:
             return
