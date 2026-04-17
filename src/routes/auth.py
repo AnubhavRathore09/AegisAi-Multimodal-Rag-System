@@ -1,34 +1,55 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from __future__ import annotations
 
-from src.models.user import users_db
-from src.services.auth_service import hash_password
+from fastapi import APIRouter, Depends, HTTPException, status
 
-router = APIRouter()
+from src.schemas import AuthResponse, AuthUser, LoginRequest, SignupRequest
+from src.services.auth import create_access_token, get_current_user_id, hash_password, verify_password
+from src.services.memory import memory_store
 
-
-class User(BaseModel):
-    username: str
-    password: str
+router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-# 🔥 SIGNUP API
-@router.post("/signup")
-def signup(user: User):
+def _user_payload(profile: dict) -> AuthUser:
+    return AuthUser(
+        id=str(profile.get("user_id", "")),
+        name=str(profile.get("name", "User")),
+        email=str(profile.get("email", "")),
+        bot_name=str(profile.get("bot_name", "Aegis AI")),
+    )
 
-    # ❌ agar already user hai
-    if user.username in users_db:
-        raise HTTPException(status_code=400, detail="User already exists")
 
-    # 🔐 password hash
-    hashed_password = hash_password(user.password)
+@router.post("/signup", response_model=AuthResponse)
+async def signup(payload: SignupRequest) -> AuthResponse:
+    existing = memory_store.get_user_by_email(payload.email)
+    if existing is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+    profile = memory_store.create_user(payload.name, payload.email, hash_password(payload.password))
+    token = create_access_token(str(profile["user_id"]), str(profile["email"]))
+    return AuthResponse(access_token=token, user=_user_payload(profile))
 
-    # 💾 store user
-    users_db[user.username] = {
-        "username": user.username,
-        "password": hashed_password
-    }
 
-    return {
-        "message": "User created successfully"
-    }
+@router.post("/register", response_model=AuthResponse)
+async def register(payload: SignupRequest) -> AuthResponse:
+    return await signup(payload)
+
+
+@router.post("/signin", response_model=AuthResponse, include_in_schema=False)
+async def signin(payload: LoginRequest) -> AuthResponse:
+    return await login(payload)
+
+
+@router.post("/login", response_model=AuthResponse)
+async def login(payload: LoginRequest) -> AuthResponse:
+    profile = memory_store.get_user_by_email(payload.email)
+    if profile is None or not verify_password(payload.password, str(profile.get("password_hash", ""))):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+    token = create_access_token(str(profile["user_id"]), str(profile["email"]))
+    return AuthResponse(access_token=token, user=_user_payload(profile))
+
+
+@router.get("/me", response_model=AuthUser)
+async def me(user_id: str = Depends(get_current_user_id)) -> AuthUser:
+    profile = memory_store.get_user_by_id(user_id)
+    if profile is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return _user_payload(profile)

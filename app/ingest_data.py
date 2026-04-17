@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from app.config import DATA_DIR, settings
-from app.services.documents import chunk_text
-from app.services.logging_service import app_logger
-from app.services.vector_store import vector_store
+from src.config import DATA_DIR, settings
+from src.services.documents import chunk_text
+from src.services.logging_service import app_logger
+from src.services.vector_store import vector_store
 
 
 def main() -> None:

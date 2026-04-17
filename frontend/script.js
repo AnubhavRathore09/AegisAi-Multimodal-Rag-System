@@ -7,7 +7,6 @@ const ADMIN_TOKEN = 'anubhav_admin_secure';
 let autoGuest = false;
 
 
-
 const MAX_FILE_SIZE_MB = 20;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
@@ -74,12 +73,25 @@ function apiDisplayBase() {
 
 function resolveApiBase() {
   try {
-    if (window.location.protocol === 'file:') return 'http://127.0.0.1:8000';
-    if (window.location.hostname.endsWith('.vercel.app')) return '';
+    const { protocol, hostname, origin } = window.location;
+    if (protocol === 'file:') return 'http://127.0.0.1:8000';
+    if (hostname === '127.0.0.1' || hostname === 'localhost') return origin;
+    if (hostname.endsWith('.vercel.app')) return '';
     return REMOTE_API;
   } catch {
     return REMOTE_API;
   }
+}
+
+function getLocalFrontendUrl() {
+  return 'http://127.0.0.1:8000/frontend/index.html';
+}
+
+function redirectFileModeToLocalServer() {
+  if (window.location.protocol !== 'file:') return false;
+  const target = `${getLocalFrontendUrl()}${window.location.search || ''}`;
+  window.location.replace(target);
+  return true;
 }
 
 async function postJsonWithFallback(paths, payload) {
@@ -413,6 +425,7 @@ function initComposerDragDrop() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (redirectFileModeToLocalServer()) return;
   window.switchTab = switchTab;
   window.doLogin = doLogin;
   window.doSignup = doSignup;
@@ -706,6 +719,10 @@ function switchTab(tab) {
   $('signupError').textContent  = '';
 }
 
+function getActiveAuthTab() {
+  return $('tabSignup')?.classList.contains('active') ? 'signup' : 'login';
+}
+
 function openForgotPasswordModal() {
   const overlay = $('forgotPasswordOverlay');
   const err = $('forgotError');
@@ -755,6 +772,7 @@ function continueAsGuest() {
 
 
 async function doLogin() {
+  if (getActiveAuthTab() !== 'login') return;
   const email = $('loginEmail').value.trim();
   const password = $('loginPassword').value;
   const errEl = $('loginError');
@@ -781,7 +799,7 @@ async function doLogin() {
     );
     if (!res || !res.ok) {
       const status = res ? res.status : 0;
-      errEl.textContent = data.detail || (status === 404 ? 'Login service is not deployed yet.' : 'Invalid email or password.');
+      errEl.textContent = data.detail || (status === 404 ? 'Login service is not deployed yet.' : 'Invalid email or password. If this is a new account, use Sign Up first.');
     } else {
       state.token = data.access_token || data.token || null;
       state.isAdmin = false;
@@ -793,7 +811,7 @@ async function doLogin() {
       return;
     }
   } catch (err) {
-    errEl.textContent = window.location.protocol === 'file:' ? 'Open the app through the local server at http://127.0.0.1:8000 or allow backend CORS for file mode.' : 'Login failed. Please check your connection.';
+    errEl.textContent = window.location.protocol === 'file:' ? 'Redirecting to local server. If it does not open, run uvicorn src.main:app --reload and open http://127.0.0.1:8000/frontend/index.html.' : 'Login failed. Please check your connection.';
   }
 
   if (btnText) btnText.style.display = 'block';
@@ -802,6 +820,7 @@ async function doLogin() {
 }
 
 async function doSignup() {
+  if (getActiveAuthTab() !== 'signup') return;
   const name = $('signupName').value.trim();
   const email = $('signupEmail').value.trim();
   const password = $('signupPassword').value;
@@ -829,7 +848,7 @@ async function doSignup() {
     );
     if (!res || !res.ok) {
       const status = res ? res.status : 0;
-      errEl.textContent = data.detail || (status === 404 ? 'Signup service is not deployed yet.' : 'Signup failed.');
+      errEl.textContent = data.detail || (status === 404 ? 'Signup service is not deployed yet.' : 'Signup failed. Please try again.');
       return;
     }
     state.token = data.access_token || data.token || null;
@@ -840,7 +859,7 @@ async function doSignup() {
     state.isGuest = false;
     loginSuccess(data.user || { name, email });
   } catch (err) {
-    errEl.textContent = window.location.protocol === 'file:' ? 'Open the app through the local server at http://127.0.0.1:8000 or allow backend CORS for file mode.' : 'Signup failed. Please check your connection.';
+    errEl.textContent = window.location.protocol === 'file:' ? 'Redirecting to local server. If it does not open, run uvicorn src.main:app --reload and open http://127.0.0.1:8000/frontend/index.html.' : 'Signup failed. Please check your connection.';
   }
 }
 

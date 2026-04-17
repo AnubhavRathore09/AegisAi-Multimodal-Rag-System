@@ -5,8 +5,8 @@ import json
 import sys
 from pathlib import Path
 
-from app.services.evaluator import EvaluationSample, rag_evaluator
-from app.services.logging_service import app_logger
+from src.services.evaluator import EvaluationSample, rag_evaluator
+from src.services.logging_service import app_logger
 
 
 async def main(path: str) -> None:

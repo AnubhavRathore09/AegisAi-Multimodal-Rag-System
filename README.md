@@ -201,7 +201,7 @@ ROUTER_LLM_CONFIDENCE_THRESHOLD=0.55
 ## 🚀 Running the Application
 
 ```bash
-python3 -m uvicorn app.main:app --reload
+python3 -m uvicorn src.main:app --reload
 ```
 
 Open:

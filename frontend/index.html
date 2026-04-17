@@ -42,9 +42,9 @@
     <p class="auth-tagline">Intelligent retrieval-augmented generation</p>
 
     <div class="auth-tabs">
-      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
-      <button class="auth-tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
-      <button class="auth-tab guest-tab" onclick="continueAsGuest()">👤 Guest</button>
+      <button type="button" class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign In</button>
+      <button type="button" class="auth-tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
+      <button type="button" class="auth-tab guest-tab" onclick="continueAsGuest()">👤 Guest</button>
     </div>
 
     <div class="auth-form" id="formLogin">
@@ -57,29 +57,29 @@
         <input type="password" id="loginPassword" placeholder="Enter password" onkeydown="if(event.key==='Enter')doLogin()" />
       </div>
       <div class="auth-error" id="loginError"></div>
-      <button class="auth-submit" id="loginBtn" onclick="doLogin()">
+      <button type="button" class="auth-submit" id="loginBtn" onclick="doLogin()">
         <span id="loginBtnText">Sign In</span>
         <div class="btn-spinner" id="loginSpinner" style="display:none"></div>
       </button>
-      <button class="auth-link-btn" onclick="openForgotPasswordModal()">Forgot password?</button>
-      <p class="auth-demo">Secure sign-in with your Aegis AI account</p>
+      <button type="button" class="auth-link-btn" onclick="openForgotPasswordModal()">Forgot password?</button>
+      <p class="auth-demo">✦Powered & Crafted by Anubhav Rathore✦</p>
     </div>
 
     <div class="auth-form" id="formSignup" style="display:none">
       <div class="form-group">
         <label for="signupName">Full Name</label>
-        <input type="text" id="signupName" placeholder="Your name" />
+        <input type="text" id="signupName" placeholder="Your name" onkeydown="if(event.key==='Enter')doSignup()" />
       </div>
       <div class="form-group">
         <label for="signupEmail">Email</label>
-        <input type="email" id="signupEmail" placeholder="you@example.com" />
+        <input type="email" id="signupEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doSignup()" />
       </div>
       <div class="form-group">
         <label for="signupPassword" >Password</label>
         <input type="password" id="signupPassword" placeholder="Create password (min 6 chars)" onkeydown="if(event.key==='Enter')doSignup()" />
       </div>
       <div class="auth-error" id="signupError"></div>
-      <button class="auth-submit" onclick="doSignup()">Create Account</button>
+      <button type="button" class="auth-submit" onclick="doSignup()">Create Account</button>
     </div>
 
   </div>

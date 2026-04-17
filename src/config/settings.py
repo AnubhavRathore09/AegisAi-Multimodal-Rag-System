@@ -1,40 +1,11 @@
-"""
-Configuration settings for the application.
-"""
-
-import os
-from pathlib import Path
-
-import yaml
-
+from src.config import DATA_DIR, FAISS_DIR, STORAGE_DIR, UPLOAD_DIR, Settings, settings
 
 class Config:
-    """Load and manage configuration from YAML file."""
-
-    def __init__(self, config_file: str = None):
-        """
-        Initialize configuration from YAML file.
-
-        Args:
-            config_file: Optional path to config file. Defaults to prompts.yaml.
-        """
-        base_path = Path(__file__).parent
-        config_path = (
-            base_path / "prompts.yaml"
-            if config_file is None
-            else Path(config_file)
-        )
-        with open(config_path, "r") as f:
-            self.config = yaml.safe_load(f)
-
-    def prompt(self, key: str) -> str:
-        """
-        Retrieve a prompt from configuration.
-
-        Args:
-            key: The prompt key.
-
-        Returns:
-            The prompt template string.
-        """
-        return self.config["prompts"][key]
+    DATA_DIR = str(DATA_DIR)
+    STORAGE_DIR = str(STORAGE_DIR)
+    VECTOR_DB_DIR = str(FAISS_DIR)
+    UPLOAD_DIR = str(UPLOAD_DIR)
+    MODEL_NAME = settings.groq_model
+    EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+    OPENAI_API_KEY = ""
+    GROQ_API_KEY = settings.groq_api_key
