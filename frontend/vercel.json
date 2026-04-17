@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://aegisai-multimodal-rag-system.onrender.com/api/:path*"
-    }
-  ]
-}
