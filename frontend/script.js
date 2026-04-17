@@ -109,6 +109,11 @@ function persistUser(user) {
   localStorage.setItem('rag-current-user', JSON.stringify(user));
 }
 
+function persistToken(token) {
+  if (token) localStorage.setItem('rag-token', token);
+  else localStorage.removeItem('rag-token');
+}
+
 function clearStoredUser() {
   localStorage.removeItem('rag-user');
   localStorage.removeItem('rag-current-user');
@@ -118,7 +123,7 @@ function persistGuestSession() {
   const guestUser = { name: 'Guest', email: 'guest@aegis.ai' };
   localStorage.setItem('isGuest', 'true');
   localStorage.removeItem('isAdmin');
-  localStorage.removeItem('rag-token');
+  persistToken(null);
   persistUser(guestUser);
   state.isGuest = true;
   state.isAdmin = false;
@@ -128,7 +133,7 @@ function persistGuestSession() {
 
 function clearStoredSession() {
   clearStoredUser();
-  localStorage.removeItem('rag-token');
+  persistToken(null);
   localStorage.removeItem('isGuest');
   localStorage.removeItem('isAdmin');
 }
@@ -623,14 +628,14 @@ function prepareAnswerText(text) {
 function getAuthHeaders(isJson = true) {
   const h   = {};
   if (isJson) h['Content-Type'] = 'application/json';
-  const tok = state.isAdmin ? ADMIN_TOKEN : getStoredToken();
+  const tok = state.isAdmin ? ADMIN_TOKEN : (state.token || getStoredToken());
   if (tok && !state.isGuest) h['Authorization'] = `Bearer ${tok}`;
   return h;
 }
 
 function getUploadHeaders() {
   const h   = {};
-  const tok = state.isAdmin ? ADMIN_TOKEN : getStoredToken();
+  const tok = state.isAdmin ? ADMIN_TOKEN : (state.token || getStoredToken());
   if (tok && !state.isGuest) h['Authorization'] = `Bearer ${tok}`;
   return h;
 }
@@ -739,57 +744,26 @@ async function doLogin() {
   errEl.textContent = '';
 
   try {
-    const isAdminLogin = (email === 'admin@aegis.ai' && password === 'admin123');
-    const isDemoLogin = (email === 'demo@aegis.ai' && password === 'demo123');
-
-    if (isAdminLogin) {
-      localStorage.setItem('isAdmin', 'true');
-      localStorage.removeItem('isGuest');
-
-      state.isAdmin = true;
-      state.isGuest = false;
-      state.token = ADMIN_TOKEN;
-
-      localStorage.setItem('rag-token', ADMIN_TOKEN);
-
-      loginSuccess({ name: 'Admin', email });
-      return;
-    }
-
-    if (isDemoLogin) {
-      state.token = "local-auth";
-      localStorage.setItem('rag-token', "local-auth");
-
-      localStorage.removeItem('isGuest');
-      localStorage.removeItem('isAdmin');
-
-      state.isAdmin = false;
-      state.isGuest = false;
-
-      loginSuccess({ name: 'Demo User', email });
-      return;
-    }
-
-    const users = JSON.parse(localStorage.getItem('rag-users') || '[]');
-    const user = users.find(u => u.email === email && u.password === password);
-
-    if (!user) {
-      errEl.textContent = 'Invalid email or password.';
+    const res = await fetch(apiUrl('/api/auth/login'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      errEl.textContent = data.detail || 'Invalid email or password.';
     } else {
-      state.token = "local-auth";
-      localStorage.setItem('rag-token', "local-auth");
-
-      localStorage.removeItem('isGuest');
-      localStorage.removeItem('isAdmin');
+      state.token = data.access_token || data.token || null;
       state.isAdmin = false;
       state.isGuest = false;
-
-      loginSuccess(user);
+      persistToken(state.token);
+      localStorage.removeItem('isGuest');
+      localStorage.removeItem('isAdmin');
+      loginSuccess(data.user || { name: email.split('@')[0], email });
       return;
     }
-
   } catch (err) {
-    errEl.textContent = 'Login failed. Server error.';
+    errEl.textContent = 'Login failed. Please check your connection.';
   }
 
   if (btnText) btnText.style.display = 'block';
@@ -797,7 +771,7 @@ async function doLogin() {
   if (loginBtn) loginBtn.disabled = false;
 }
 
-function doSignup() {
+async function doSignup() {
   const name = $('signupName').value.trim();
   const email = $('signupEmail').value.trim();
   const password = $('signupPassword').value;
@@ -818,26 +792,27 @@ function doSignup() {
     return;
   }
 
-  const users = JSON.parse(localStorage.getItem('rag-users') || '[]');
-
-  if (users.find(u => u.email === email)) {
-    errEl.textContent = 'Email already registered.';
-    return;
+  try {
+    const res = await fetch(apiUrl('/api/auth/signup'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      errEl.textContent = data.detail || 'Signup failed.';
+      return;
+    }
+    state.token = data.access_token || data.token || null;
+    persistToken(state.token);
+    localStorage.removeItem('isGuest');
+    localStorage.removeItem('isAdmin');
+    state.isAdmin = false;
+    state.isGuest = false;
+    loginSuccess(data.user || { name, email });
+  } catch (err) {
+    errEl.textContent = 'Signup failed. Please check your connection.';
   }
-
-  const newUser = { name, email, password };
-  users.push(newUser);
-
-  localStorage.setItem('rag-users', JSON.stringify(users));
-  localStorage.removeItem('isGuest');
-  localStorage.removeItem('isAdmin');
-
-  state.token = "local-auth";
-  localStorage.setItem('rag-token', "local-auth");
-  state.isAdmin = false;
-  state.isGuest = false;
-
-  loginSuccess(newUser);
 }
 
 function loginSuccess(user) {
@@ -901,6 +876,7 @@ function showApp() {
   loadTheme();
   loadHistory();
   loadIndexedSources();
+  startNewChat();
 }
 
 
@@ -1241,13 +1217,12 @@ async function loadHistory() {
   }
 
   try {
-    const res = await apiFetch('/api/history', { headers: getAuthHeaders() });
+    const res = await apiFetch('/api/chats', { headers: getAuthHeaders() });
     if (res && res.ok) {
       const data = await res.json();
       if (hl) hl.style.display = 'none';
-      const sessions = Array.isArray(data) ? data : (data.sessions || []);
+      const sessions = Array.isArray(data) ? data : (data.chats || data.sessions || []);
       renderHistoryList(sessions);
-      restoreActiveSession(sessions);
       state._historyLoading = false;
       return;
     }
@@ -1256,7 +1231,6 @@ async function loadHistory() {
   if (hl) hl.style.display = 'none';
   const sessions = JSON.parse(localStorage.getItem(sessionsStorageKey()) || '[]');
   renderHistoryList(sessions);
-  restoreActiveSession(sessions);
   state._historyLoading = false;
 }
 

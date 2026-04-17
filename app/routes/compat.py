@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from app.config import settings
 from app.schemas import BatchEvaluationRequest
+from app.services.auth import get_current_user_id, get_optional_user_id
 from app.services.evaluator import EvaluationSample, rag_evaluator
 from app.services.logging_service import app_logger
 from app.services.memory import memory_store
@@ -15,26 +16,34 @@ ADMIN_TOKEN = "anubhav_admin_secure"
 
 
 @router.get("/api/history")
-async def list_history():
-    return memory_store.list_sessions()
+async def list_history(user_id: str = Depends(get_current_user_id)):
+    return memory_store.list_sessions(user_id)
 
 
 @router.get("/api/history/{session_id}")
-async def get_history(session_id: str):
-    return {"messages": memory_store.load_session_messages(session_id)}
+async def get_history(session_id: str, user_id: str = Depends(get_current_user_id)):
+    return {"messages": memory_store.load_session_messages(user_id, session_id)}
 
 
 @router.delete("/api/history/{session_id}")
-async def delete_history(session_id: str):
-    memory_store.delete_session(session_id)
+async def delete_history(session_id: str, user_id: str = Depends(get_current_user_id)):
+    memory_store.delete_session(user_id, session_id)
     return {"deleted": True}
 
 
+@router.get("/api/chats")
+async def list_chats(user_id: str = Depends(get_current_user_id)):
+    return {"chats": memory_store.list_sessions(user_id)}
+
+
 @router.get("/api/chat/sources")
-async def chat_sources():
+async def chat_sources(user_id: str | None = Depends(get_optional_user_id)):
     seen = set()
     sources = []
     for document in vector_store.documents:
+        owner = str(document.get("user_id", "")).strip()
+        if owner and owner != str(user_id or "").strip():
+            continue
         source = str(document.get("source", "")).strip()
         if not source or source in seen:
             continue
@@ -45,10 +54,10 @@ async def chat_sources():
 
 @router.get("/analytics")
 async def analytics():
-    sessions = memory_store.list_sessions()
-    messages = sum(len(memory_store.load_session_messages(session["id"])) for session in sessions)
+    sessions: list[dict] = []
+    messages = 0
     return {
-        "users": len(sessions),
+        "users": len({str(doc.get("user_id", "")) for doc in vector_store.documents if doc.get("user_id")}),
         "chats": messages,
         "streams": app_logger.counters.get("stream", 0),
         "uploads": len({str(doc.get('source', '')) for doc in vector_store.documents if doc.get('source')}),

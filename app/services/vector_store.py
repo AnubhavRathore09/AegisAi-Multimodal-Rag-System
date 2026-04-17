@@ -96,7 +96,21 @@ class FaissDocumentStore:
 
         return len(clean_docs)
 
-    def search(self, query: str, k: int | None = None, use_hybrid: bool = True) -> list[dict[str, Any]]:
+    def _visible_doc_indices(self, user_id: str | None) -> list[int]:
+        visible: list[int] = []
+        for idx, document in enumerate(self.documents):
+            owner = str(document.get("user_id", "")).strip()
+            if not owner or owner == str(user_id or "").strip():
+                visible.append(idx)
+        return visible
+
+    def search(
+        self,
+        query: str,
+        k: int | None = None,
+        use_hybrid: bool = True,
+        user_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         if not query.strip():
             return []
 
@@ -104,15 +118,16 @@ class FaissDocumentStore:
         with self.lock:
             if not self.documents or self.vectors.size == 0:
                 return []
+            visible_indices = self._visible_doc_indices(user_id)
+            if not visible_indices:
+                return []
             query_vector = self.embed([query])
-            sample_k = min(max(k * 3, k), len(self.documents))
-            if faiss is not None and self.index is not None:
-                scores, indices = self.index.search(query_vector, sample_k)
-            else:
-                similarities = np.dot(self.vectors, query_vector[0])
-                top_indices = np.argsort(similarities)[::-1][:sample_k]
-                scores = np.array([[similarities[idx] for idx in top_indices]], dtype="float32")
-                indices = np.array([top_indices], dtype="int64")
+            visible_vectors = self.vectors[visible_indices]
+            similarities = np.dot(visible_vectors, query_vector[0])
+            sample_k = min(max(k * 3, k), len(visible_indices))
+            top_positions = np.argsort(similarities)[::-1][:sample_k]
+            scores = np.array([[similarities[idx] for idx in top_positions]], dtype="float32")
+            indices = np.array([[visible_indices[idx] for idx in top_positions]], dtype="int64")
 
         matches: list[dict[str, Any]] = []
         for score, idx in zip(scores[0], indices[0]):

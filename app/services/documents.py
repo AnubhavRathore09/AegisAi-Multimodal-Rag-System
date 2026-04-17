@@ -57,10 +57,18 @@ def save_upload(content: bytes, suffix: str) -> Path:
     return path
 
 
-async def ingest_upload(file: UploadFile) -> UploadResponse:
+async def ingest_upload(file: UploadFile, user_id: str | None = None) -> UploadResponse:
     suffix = Path(file.filename or "upload.bin").suffix.lower()
     if suffix not in ALLOWED_DOCUMENT_TYPES and suffix not in ALLOWED_IMAGE_TYPES:
-        raise HTTPException(status_code=400, detail="Unsupported file type")
+        raise HTTPException(status_code=400, detail="Unsupported file type. Use PDF, TXT, MD, CSV, PNG, JPG, JPEG, or WEBP.")
+
+    content_type = str(file.content_type or "").lower()
+    if suffix in ALLOWED_IMAGE_TYPES and content_type and not content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Image upload content type is invalid")
+    if suffix in ALLOWED_DOCUMENT_TYPES and content_type and not (
+        content_type.startswith("text/") or "pdf" in content_type or content_type == "application/octet-stream"
+    ):
+        raise HTTPException(status_code=400, detail="Document upload content type is invalid")
 
     content = await file.read()
     if not content:
@@ -83,6 +91,7 @@ async def ingest_upload(file: UploadFile) -> UploadResponse:
                     "source": file.filename or saved_path.name,
                     "kind": "image",
                     "upload_id": upload_id,
+                    "user_id": user_id,
                     "path": str(saved_path),
                 }
                 for chunk in chunks
@@ -123,10 +132,11 @@ async def ingest_upload(file: UploadFile) -> UploadResponse:
             {
                 "text": chunk,
                 "source": file.filename or saved_path.name,
-                "kind": "document",
-                "upload_id": upload_id,
-                "path": str(saved_path),
-            }
+                    "kind": "document",
+                    "upload_id": upload_id,
+                    "user_id": user_id,
+                    "path": str(saved_path),
+                }
             for chunk in chunks
         ],
     )

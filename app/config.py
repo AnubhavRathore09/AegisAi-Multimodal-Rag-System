@@ -18,6 +18,9 @@ load_dotenv(BASE_DIR / ".env")
 @dataclass(frozen=True)
 class Settings:
     app_name: str = "AegisAI"
+    jwt_secret: str = os.getenv("JWT_SECRET", "aegisai-dev-secret").strip()
+    jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256").strip()
+    jwt_expiry_minutes: int = int(os.getenv("JWT_EXPIRY_MINUTES", "10080"))
     groq_api_key: str = os.getenv("GROQ_API_KEY", "").strip()
     groq_model: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
     groq_vision_model: str = os.getenv(
@@ -70,4 +73,3 @@ settings = Settings()
 
 for path in (STORAGE_DIR, FAISS_DIR, UPLOAD_DIR, DATA_DIR):
     path.mkdir(parents=True, exist_ok=True)
-

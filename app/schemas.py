@@ -33,6 +33,30 @@ class ChatRequest(BaseModel):
     debug: bool = False
 
 
+class AuthUser(BaseModel):
+    id: str
+    name: str
+    email: str
+    bot_name: str = "Aegis AI"
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    password: str = Field(min_length=3, max_length=200)
+
+
+class SignupRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    email: str = Field(min_length=3, max_length=320)
+    password: str = Field(min_length=6, max_length=200)
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: AuthUser
+
+
 class ChatResponse(BaseModel):
     response: str
     corrected_query: str | None = None
@@ -71,4 +95,3 @@ class EvaluationSamplePayload(BaseModel):
 
 class BatchEvaluationRequest(BaseModel):
     samples: list[EvaluationSamplePayload] = Field(default_factory=list)
-

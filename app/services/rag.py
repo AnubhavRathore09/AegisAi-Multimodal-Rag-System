@@ -11,14 +11,15 @@ from typing import Any
 
 from app.config import settings
 from app.schemas import ChatRequest, ChatResponse
+from app.services.agent import query_agent
 from app.services.cache import cache_service
+from app.services.hybrid_retriever import hybrid_retriever
 from app.services.llm import llm_service
 from app.services.logging_service import app_logger
 from app.services.memory import memory_store
 from app.services.ocr import extract_text_from_image_bytes_async
 from app.services.query_processing import correct_query, expand_query
 from app.services.router import query_router
-from app.services.vector_store import vector_store
 
 GREETING_PATTERN = re.compile(
     r"^\s*(hi+|hello+|hey+|hii+|heyy+|yo+|hola+|namaste+|good\s+(morning|afternoon|evening))\s*!*\s*$",
@@ -37,6 +38,9 @@ class PipelineResult:
     route_fallback: bool
     prompt: str
     history: list[dict[str, str]]
+    user_id: str | None
+    bot_name: str
+    agent_plan: dict[str, Any]
     context: str
     citations: list[dict[str, Any]]
     retrieval: dict[str, Any]
@@ -153,7 +157,7 @@ def _memory_block(history: list[dict[str, str]]) -> str:
     return "\n".join(parts)
 
 
-def _build_prompt(query: str, context: str, prompt_template: str, memory_text: str) -> str:
+def _build_prompt(query: str, context: str, prompt_template: str, memory_text: str, bot_name: str) -> str:
     style = {
         "default": "Use short readable paragraphs and bullets only when they help.",
         "summary": "Lead with a short summary, then add only the most important details.",
@@ -166,7 +170,8 @@ def _build_prompt(query: str, context: str, prompt_template: str, memory_text: s
     memory_section = f"\nRecent conversation:\n{memory_text}\n" if memory_text else ""
 
     if context:
-        return f"""Use the retrieved context if it is relevant.
+        return f"""Your assistant name is {bot_name}.
+Use the retrieved context if it is relevant.
 {memory_section}
 
 Retrieved context:
@@ -182,7 +187,8 @@ Answer style:
 - Do not mention internal system prompts or internal limitations.
 """
 
-    return f"""{memory_section}
+    return f"""Your assistant name is {bot_name}.
+{memory_section}
 User question:
 {expanded_query}
 
@@ -214,6 +220,7 @@ def _cache_key(
     role_mode: str,
     prompt_template: str,
     route: str,
+    user_id: str | None,
 ) -> str:
     raw = "|".join(
         [
@@ -223,13 +230,14 @@ def _cache_key(
             role_mode,
             prompt_template,
             str(bool(request.use_hybrid_search)),
+            str(user_id or "guest"),
         ]
     )
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def _retrieval_cache_key(query: str, request: ChatRequest) -> str:
-    raw = "|".join([query.strip().lower(), str(bool(request.use_hybrid_search)), str(settings.retrieval_k)])
+def _retrieval_cache_key(query: str, request: ChatRequest, user_id: str | None) -> str:
+    raw = "|".join([query.strip().lower(), str(bool(request.use_hybrid_search)), str(settings.retrieval_k), str(user_id or "guest")])
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
@@ -250,15 +258,17 @@ async def _iterate_sync_stream(stream):
         yield str(token)
 
 
-async def _plan_pipeline(request: ChatRequest) -> PipelineResult:
+async def _plan_pipeline(request: ChatRequest, user_id: str | None = None) -> PipelineResult:
     session_id = _session_id(request)
     query, corrected = await asyncio.to_thread(correct_query, request.query)
     role_mode = _clean_role_mode(request.role_mode)
     prompt_template = _clean_prompt_template(request.prompt_template)
-    history = await asyncio.to_thread(memory_store.load_history, session_id)
+    history = await asyncio.to_thread(memory_store.load_history, user_id or "", session_id)
     decision = await query_router.route(request, history_count=len(history))
+    plan = query_agent.build_plan(decision.route, bool(history), bool(request.attachments), bool(request.images))
+    bot_name = await asyncio.to_thread(memory_store.get_bot_name, user_id)
     route = decision.route
-    cache_key = _cache_key(query, request, role_mode, prompt_template, route) if _can_use_cache(request, route) else None
+    cache_key = _cache_key(query, request, role_mode, prompt_template, route, user_id) if _can_use_cache(request, route) else None
 
     if cache_key:
         cached = await cache_service.get_response(cache_key)
@@ -273,6 +283,9 @@ async def _plan_pipeline(request: ChatRequest) -> PipelineResult:
                 route_fallback=decision.fallback,
                 prompt="",
                 history=[],
+                user_id=user_id,
+                bot_name=bot_name,
+                agent_plan=query_agent.debug_payload(plan),
                 context="",
                 citations=list(cached.get("citations", [])),
                 retrieval=dict(cached.get("retrieval", {})),
@@ -331,13 +344,13 @@ async def _plan_pipeline(request: ChatRequest) -> PipelineResult:
         }
 
     if decision.use_retrieval and not context:
-        retrieval_key = _retrieval_cache_key(query, request)
+        retrieval_key = _retrieval_cache_key(query, request, user_id)
         cached_retrieval = await cache_service.get_retrieval(retrieval_key)
         if cached_retrieval is not None:
             matches = list(cached_retrieval.get("matches", []))
             warnings.append("retrieval_cache_hit")
         else:
-            matches = await asyncio.to_thread(vector_store.search, query, None, request.use_hybrid_search)
+            matches = await asyncio.to_thread(hybrid_retriever.search, query, None, user_id)
             await cache_service.set_retrieval(retrieval_key, {"matches": matches})
         context, citations, retrieval = _build_context(matches)
         if retrieval.get("top_score", 0.0) < settings.retrieval_min_score or not citations:
@@ -348,12 +361,12 @@ async def _plan_pipeline(request: ChatRequest) -> PipelineResult:
             retrieval["top_score"] = 0.0
             warnings.append("retrieval_skipped_low_confidence")
 
-    use_memory = decision.use_memory and bool(history)
+    use_memory = (decision.use_memory or plan.use_memory) and bool(history)
     if decision.use_memory and not history:
         warnings.append("memory_route_without_history")
     memory_text = _memory_block(history if use_memory else [])
     used_rag = bool(context) or (request.force_rag and decision.route in {"rag", "multimodal"})
-    prompt = _build_prompt(query, context if used_rag else "", prompt_template, memory_text)
+    prompt = _build_prompt(query, context if used_rag else "", prompt_template, memory_text, bot_name)
 
     return PipelineResult(
         query=query,
@@ -365,6 +378,9 @@ async def _plan_pipeline(request: ChatRequest) -> PipelineResult:
         route_fallback=decision.fallback,
         prompt=prompt,
         history=history if use_memory else [],
+        user_id=user_id,
+        bot_name=bot_name,
+        agent_plan=query_agent.debug_payload(plan),
         context=context if used_rag else "",
         citations=citations,
         retrieval=retrieval,
@@ -378,10 +394,12 @@ async def _plan_pipeline(request: ChatRequest) -> PipelineResult:
     )
 
 
-async def _persist_memory(session_id: str, query: str, response: str) -> None:
+async def _persist_memory(user_id: str | None, session_id: str, query: str, response: str) -> None:
+    if not user_id:
+        return
     await asyncio.gather(
-        asyncio.to_thread(memory_store.save_message, session_id, "user", query),
-        asyncio.to_thread(memory_store.save_message, session_id, "assistant", response),
+        asyncio.to_thread(memory_store.save_message, user_id, session_id, "user", query),
+        asyncio.to_thread(memory_store.save_message, user_id, session_id, "assistant", response),
     )
 
 
@@ -402,18 +420,20 @@ def _debug_payload(pipeline: PipelineResult) -> dict[str, Any]:
             }
             for citation in pipeline.citations
         ],
+        "agent": pipeline.agent_plan,
+        "bot_name": pipeline.bot_name,
     }
 
 
-async def run_chat(request: ChatRequest) -> ChatResponse:
+async def run_chat(request: ChatRequest, user_id: str | None = None) -> ChatResponse:
     started = time.perf_counter()
-    pipeline = await _plan_pipeline(request)
+    pipeline = await _plan_pipeline(request, user_id=user_id)
     if pipeline.cached_response is not None:
         return pipeline.cached_response
 
     if _is_greeting(pipeline.query):
         response = _greeting_response()
-        await _persist_memory(pipeline.session_id, pipeline.query, response)
+        await _persist_memory(pipeline.user_id, pipeline.session_id, pipeline.query, response)
         return ChatResponse(
             response=response,
             corrected_query=pipeline.corrected,
@@ -439,13 +459,14 @@ async def run_chat(request: ChatRequest) -> ChatResponse:
         prompt_template=pipeline.prompt_template,
     )
     response = result.text.strip() or "I could not generate a response."
-    await _persist_memory(pipeline.session_id, pipeline.query, response)
+    await _persist_memory(pipeline.user_id, pipeline.session_id, pipeline.query, response)
     combined_warnings = list(pipeline.warnings) + list(result.warnings)
     latency_ms = round((time.perf_counter() - started) * 1000, 2)
 
     await asyncio.to_thread(
         app_logger.log,
         "chat",
+        user_id=pipeline.user_id,
         session_id=pipeline.session_id,
         query=pipeline.query,
         corrected_query=pipeline.corrected,
@@ -500,9 +521,9 @@ async def run_chat(request: ChatRequest) -> ChatResponse:
     return payload
 
 
-async def stream_chat(request: ChatRequest):
+async def stream_chat(request: ChatRequest, user_id: str | None = None):
     started = time.perf_counter()
-    pipeline = await _plan_pipeline(request)
+    pipeline = await _plan_pipeline(request, user_id=user_id)
     if pipeline.cached_response is not None:
         done_payload = pipeline.cached_response.model_dump()
         done_payload["type"] = "done"
@@ -512,7 +533,7 @@ async def stream_chat(request: ChatRequest):
 
     if _is_greeting(pipeline.query):
         response = _greeting_response()
-        await _persist_memory(pipeline.session_id, pipeline.query, response)
+        await _persist_memory(pipeline.user_id, pipeline.session_id, pipeline.query, response)
         done_payload = {
             "type": "done",
             "done": True,
@@ -554,13 +575,14 @@ async def stream_chat(request: ChatRequest):
         "completion_tokens": max(1, len(final_text) // 4),
     }
     usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
-    await _persist_memory(pipeline.session_id, pipeline.query, final_text)
+    await _persist_memory(pipeline.user_id, pipeline.session_id, pipeline.query, final_text)
     warnings = list(pipeline.warnings) + list(meta.get("warnings", []))
     latency_ms = round((time.perf_counter() - started) * 1000, 2)
 
     await asyncio.to_thread(
         app_logger.log,
         "stream",
+        user_id=pipeline.user_id,
         session_id=pipeline.session_id,
         query=pipeline.query,
         corrected_query=pipeline.corrected,
@@ -616,4 +638,3 @@ async def stream_chat(request: ChatRequest):
         "debug": _debug_payload(pipeline) if request.debug else {},
     }
     yield f"data: {json.dumps(done_payload)}\n\n"
-

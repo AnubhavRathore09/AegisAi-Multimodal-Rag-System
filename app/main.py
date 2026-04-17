@@ -4,6 +4,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
+from app.routes.auth import router as auth_router
 from app.routes.chat import router as chat_router
 from app.routes.upload import router as upload_router
 from app.routes.compat import router as compat_router
@@ -16,19 +17,24 @@ app = FastAPI(title=settings.app_name)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://aegis-ai-multimodal-rag-system.vercel.app"],
+    allow_origins=settings.cors_origins if settings.cors_origins != ["*"] else [
+        "https://aegis-ai-multimodal-rag-system.vercel.app",
+        "https://aegis-ai-multimodal-rag-system-oxg1vluip.vercel.app",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+    ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(upload_router)
 app.include_router(compat_router)
-
-app.include_router(chat_router, prefix="/api")
-app.include_router(upload_router, prefix="/api")
-app.include_router(compat_router, prefix="/api")
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 INDEX_FILE = FRONTEND_DIR / "index.html"
