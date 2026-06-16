@@ -72,18 +72,21 @@ AegisAI introduces an adaptive routing-based RAG architecture that dynamically s
 ## 🎥 Demo
 
 ### 💬 Chat Interface
-<img width="1440" height="819" alt="Screenshot 2026-04-12 at 8 30 29 PM" src="https://github.com/user-attachments/assets/418d8729-82b5-4515-992b-5f3949d7e8f0" />
+<img width="1440" height="816" alt="Screenshot 2026-06-16 at 12 16 57 PM" src="https://github.com/user-attachments/assets/80eb309c-f7c3-4ffa-a698-77c30d4a0e84" />
+
 
 
 ### 📂 File Upload & Processing
-<img width="1440" height="818" alt="Screenshot 2026-04-12 at 8 41 30 PM" src="https://github.com/user-attachments/assets/73c185a8-6a8c-4919-90b4-59ac155cffdf" />
+<img width="1440" height="818" alt="Screenshot 2026-06-16 at 12 19 57 PM" src="https://github.com/user-attachments/assets/c07a5577-5ad7-4c3f-b02f-d3f11841cd70" />
+
 
 
 ### 🧠 Explainability Panel
-<img width="1440" height="818" alt="Screenshot 2026-04-12 at 8 42 09 PM" src="https://github.com/user-attachments/assets/0effe80a-6eee-4f87-b43a-6f68bad0d9a0" />
+<img width="1440" height="817" alt="Screenshot 2026-06-16 at 12 17 18 PM" src="https://github.com/user-attachments/assets/1e195b68-5872-4f7b-ba7d-16fc9a23e74f" />
 
 ### 🔐 Authentication System
-<img width="1437" height="812" alt="Screenshot 2026-04-12 at 8 29 58 PM" src="https://github.com/user-attachments/assets/58ba69b9-369a-4a10-baa0-7dcd53f4c2f4" />
+<img width="1439" height="817" alt="Screenshot 2026-06-16 at 12 16 38 PM" src="https://github.com/user-attachments/assets/45c922e7-5c55-42ee-b11b-d360aae14ba4" />
+
 
 
 
