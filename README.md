@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
-![Groq](https://img.shields.io/badge/Groq-LLM-orange)
+![Gemini](https://img.shields.io/badge/Gemini-2.5%20Flash-4285F4?logo=google&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-Caching-red)
 ![Deploy](https://img.shields.io/badge/Deploy-Production-green)
 
@@ -21,7 +21,7 @@ The system integrates:
 
 - 🔹 Adaptive query routing for intelligent decision-making  
 - 🔹 Hybrid retrieval (FAISS + MongoDB) for grounded responses  
-- 🔹 Memory-aware context injection for conversational continuity  
+- 🔹 Session + long-term MongoDB memory for conversational continuity  
 - 🔹 Multimodal pipelines (OCR + speech-to-text) for rich input handling  
 - 🔹 Confidence-based fallback to minimize hallucinations  
 
@@ -34,12 +34,14 @@ AegisAI bridges the gap between static chatbots and truly intelligent AI systems
 
 - Adaptive Query Routing Engine  
   Dynamically selects optimal execution path (Direct / RAG / Memory / Multimodal) based on intent classification and confidence scoring
+- Tavily-backed live web search for current events, sports, finance, weather, and breaking news
 - Multimodal Input Support  
   Handles text, documents, images, and voice seamlessly
 - FAISS-based retrieval with confidence-aware fallback
 - MongoDB-backed conversational memory
 - OCR pipeline for image understanding
-- Voice-to-text processing
+- Gemini-backed streaming and speech-to-text
+- Tavily web search for real-time factual answers
 - Query correction and rewriting
 - Hallucination reduction using grounded responses
 - Streaming chat responses
@@ -110,7 +112,8 @@ Response + Logs + Cache + Evaluation
 
 - Python
 - FastAPI
-- Groq API
+- Google Gemini API
+- Tavily Search API
 - FAISS
 - MongoDB
 - Redis
@@ -173,15 +176,23 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+If you see a broken interpreter like `venv/bin/python3.14: no such file or directory`, delete the old virtual environment and recreate it with Python 3.11 or 3.12.
+
 ---
 
 ## 🔐 Environment Variables
 
 ```env
-GROQ_API_KEY=your_groq_api_key
-GROQ_MODEL=llama-3.3-70b-versatile
-GROQ_VISION_MODEL=meta-llama/llama-4-scout-17b-16e-instruct
-GROQ_SPEECH_MODEL=whisper-large-v3-turbo
+GEMINI_API_KEY=your_gemini_api_key
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+MODEL_NAME=gemini-2.5-flash
+FALLBACK_MODEL_NAME=
+ROUTER_MODEL_NAME=
+SUMMARY_MODEL_NAME=
+TRANSCRIPTION_MODEL_NAME=
+TAVILY_API_KEY=
+TAVILY_MAX_RESULTS=5
+WEB_SEARCH_TIMEOUT_SECONDS=12
 
 MONGODB_URI=mongodb://localhost:27017
 MONGODB_DB=aegisai
@@ -194,6 +205,10 @@ RATE_LIMIT_REQUESTS=10
 RATE_LIMIT_WINDOW_SECONDS=60
 ROUTER_USE_LLM=true
 ROUTER_LLM_CONFIDENCE_THRESHOLD=0.55
+MEMORY_SUMMARY_TRIGGER_MESSAGES=8
+MEMORY_SUMMARY_MAX_MESSAGES=20
+LONG_TERM_MEMORY_SUMMARIES=4
+LONG_TERM_MEMORY_CHAR_LIMIT=2200
 ```
 
 ---

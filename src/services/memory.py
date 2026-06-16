@@ -21,9 +21,11 @@ class ChatMemoryStore:
     def __init__(self) -> None:
         self._fallback_messages: dict[str, dict[str, list[dict[str, Any]]]] = {}
         self._fallback_profiles: dict[str, dict[str, Any]] = {}
+        self._fallback_summaries: dict[str, dict[str, dict[str, Any]]] = {}
         self._fallback_path = STORAGE_DIR / "chat_memory_fallback.json"
         self._messages: Collection | None = None
         self._profiles: Collection | None = None
+        self._summaries: Collection | None = None
 
         try:
             client = MongoClient(settings.mongodb_uri, serverSelectionTimeoutMS=1500)
@@ -31,12 +33,16 @@ class ChatMemoryStore:
             db = client[settings.mongodb_db]
             self._messages = db["chat_history"]
             self._profiles = db["user_profiles"]
+            self._summaries = db["chat_summaries"]
             self._messages.create_index([("user_id", ASCENDING), ("session_id", ASCENDING), ("created_at", ASCENDING)])
             self._profiles.create_index([("email", ASCENDING)], unique=True)
             self._profiles.create_index([("user_id", ASCENDING)], unique=True)
+            self._summaries.create_index([("user_id", ASCENDING), ("session_id", ASCENDING)], unique=True)
+            self._summaries.create_index([("user_id", ASCENDING), ("updated_at", DESCENDING)])
         except Exception:
             self._messages = None
             self._profiles = None
+            self._summaries = None
 
         self._load_fallback()
 
@@ -66,6 +72,7 @@ class ChatMemoryStore:
         except Exception:
             return
         self._fallback_profiles = dict(payload.get("profiles", {}))
+        self._fallback_summaries = dict(payload.get("summaries", {}))
         raw_messages = payload.get("messages", {})
         self._fallback_messages = {}
         for user_id, sessions in raw_messages.items():
@@ -76,6 +83,7 @@ class ChatMemoryStore:
     def _save_fallback(self) -> None:
         payload = {
             "profiles": self._fallback_profiles,
+            "summaries": self._fallback_summaries,
             "messages": {
                 user_id: {
                     session_id: [self._serialize_record(record) for record in records]
@@ -188,6 +196,13 @@ class ChatMemoryStore:
 
         return [{"role": str(doc.get("role", "user")), "content": str(doc.get("content", ""))} for doc in docs]
 
+    def count_session_messages(self, user_id: str, session_id: str) -> int:
+        if not user_id:
+            return 0
+        if self._messages is not None:
+            return int(self._messages.count_documents({"user_id": user_id, "session_id": session_id}))
+        return len(self._fallback_messages.get(user_id, {}).get(session_id, []))
+
     def list_sessions(self, user_id: str, limit: int = 100) -> list[dict[str, Any]]:
         if not user_id:
             return []
@@ -249,6 +264,78 @@ class ChatMemoryStore:
             }
             for doc in docs
         ]
+
+    def upsert_session_summary(self, user_id: str, session_id: str, summary: str, message_count: int) -> None:
+        if not user_id:
+            return
+        payload = {
+            "user_id": user_id,
+            "session_id": session_id,
+            "summary": str(summary or "").strip(),
+            "message_count": int(message_count),
+            "updated_at": datetime.now(timezone.utc),
+        }
+        if self._summaries is not None:
+            self._summaries.update_one(
+                {"user_id": user_id, "session_id": session_id},
+                {"$set": payload},
+                upsert=True,
+            )
+            return
+        self._fallback_summaries.setdefault(user_id, {})[session_id] = {
+            "summary": payload["summary"],
+            "message_count": payload["message_count"],
+            "updated_at": payload["updated_at"].isoformat(),
+        }
+        self._save_fallback()
+
+    def get_session_summary(self, user_id: str, session_id: str) -> dict[str, Any] | None:
+        if not user_id:
+            return None
+        if self._summaries is not None:
+            return self._summaries.find_one({"user_id": user_id, "session_id": session_id}, {"_id": 0})
+        summary = self._fallback_summaries.get(user_id, {}).get(session_id)
+        if not summary:
+            return None
+        payload = dict(summary)
+        updated_at = payload.get("updated_at")
+        if isinstance(updated_at, str):
+            try:
+                payload["updated_at"] = datetime.fromisoformat(updated_at)
+            except ValueError:
+                payload["updated_at"] = datetime.now(timezone.utc)
+        return payload
+
+    def load_recent_summaries(self, user_id: str, current_session_id: str, limit: int | None = None) -> list[dict[str, Any]]:
+        if not user_id:
+            return []
+        limit = limit or settings.long_term_memory_summaries
+        if self._summaries is not None:
+            docs = list(
+                self._summaries.find(
+                    {"user_id": user_id, "session_id": {"$ne": current_session_id}},
+                    {"_id": 0},
+                )
+                .sort("updated_at", DESCENDING)
+                .limit(limit)
+            )
+            return docs
+
+        summaries = []
+        for session_id, payload in self._fallback_summaries.get(user_id, {}).items():
+            if session_id == current_session_id:
+                continue
+            item = dict(payload)
+            updated_at = item.get("updated_at")
+            if isinstance(updated_at, str):
+                try:
+                    item["updated_at"] = datetime.fromisoformat(updated_at)
+                except ValueError:
+                    item["updated_at"] = datetime.now(timezone.utc)
+            item["session_id"] = session_id
+            summaries.append(item)
+        summaries.sort(key=lambda entry: entry.get("updated_at") or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+        return summaries[:limit]
 
     def load_recent_messages_across_sessions(
         self,
@@ -314,8 +401,11 @@ class ChatMemoryStore:
             return
         if self._messages is not None:
             self._messages.delete_many({"user_id": user_id, "session_id": session_id})
+            if self._summaries is not None:
+                self._summaries.delete_many({"user_id": user_id, "session_id": session_id})
             return
         self._fallback_messages.get(user_id, {}).pop(session_id, None)
+        self._fallback_summaries.get(user_id, {}).pop(session_id, None)
         self._save_fallback()
 
 

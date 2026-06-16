@@ -1,6 +1,7 @@
 'use strict';
 
 const REMOTE_API = "https://aegisai-multimodal-rag-system.onrender.com";
+const APP_LOGO_SRC = "images/Futuristic_glowing_logo_animation-removebg-preview copy.png?v=2";
 
 
 const ADMIN_TOKEN = 'anubhav_admin_secure';
@@ -71,11 +72,19 @@ function apiDisplayBase() {
   return resolveApiBase() || window.location.origin || REMOTE_API;
 }
 
+function getPreferredLocalApiBase() {
+  return 'http://127.0.0.1:8000';
+}
+
 function resolveApiBase() {
   try {
-    const { protocol, hostname, origin } = window.location;
-    if (protocol === 'file:') return 'http://127.0.0.1:8000';
-    if (hostname === '127.0.0.1' || hostname === 'localhost') return origin;
+    const { protocol, hostname, origin, port, pathname } = window.location;
+    if (protocol === 'file:') return getPreferredLocalApiBase();
+    if (hostname === '127.0.0.1' || hostname === 'localhost') {
+      const localAppPorts = new Set(['8000', '8001']);
+      const isBackendServedApp = localAppPorts.has(String(port || '')) || pathname.startsWith('/frontend/');
+      return isBackendServedApp ? origin : getPreferredLocalApiBase();
+    }
     if (hostname.endsWith('.vercel.app')) return '';
     return REMOTE_API;
   } catch {
@@ -84,7 +93,7 @@ function resolveApiBase() {
 }
 
 function getLocalFrontendUrl() {
-  return 'http://127.0.0.1:8000/frontend/index.html';
+  return `${getPreferredLocalApiBase()}/frontend/index.html`;
 }
 
 function redirectFileModeToLocalServer() {
@@ -272,7 +281,7 @@ function uniqueSources(sources) {
   return (sources || []).filter(src => {
     const key = typeof src === 'string'
       ? src
-      : `${src.source || src.name || 'source'}::${src.kind || ''}`;
+      : `${src.url || ''}::${src.source || src.name || 'source'}::${src.kind || ''}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -448,7 +457,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const hasValidSession = restoreSession();
 
 if (hasValidSession && !window.location.search.includes("force_login")) {
-  showApp();
+  showApp({ startFresh: false });
 } else {
   const authScreen = document.getElementById('authScreen');
   const appWrapper = document.getElementById('appWrapper');
@@ -471,14 +480,18 @@ if (hasValidSession && !window.location.search.includes("force_login")) {
 });
 
 function getStoredActiveChatId() {
-  try { return localStorage.getItem(activeChatStorageKey()) || null; } catch { return null; }
+  try { return sessionStorage.getItem(activeChatStorageKey()) || null; } catch { return null; }
 }
 
 function setStoredActiveChatId(chatId) {
   try {
-    if (chatId) localStorage.setItem(activeChatStorageKey(), chatId);
-    else localStorage.removeItem(activeChatStorageKey());
+    if (chatId) sessionStorage.setItem(activeChatStorageKey(), chatId);
+    else sessionStorage.removeItem(activeChatStorageKey());
   } catch {}
+}
+
+function clearTabActiveChat() {
+  setStoredActiveChatId(null);
 }
 
 async function loadFeatureConfig() {
@@ -493,7 +506,11 @@ async function loadFeatureConfig() {
     const roleModes       = data.role_modes       || [];
     const promptTemplates = data.prompt_templates || [];
 
-    state.selectedModel    = getStoredPreference('model',                models[0]          || null);
+    const storedModel = getStoredPreference('model', null);
+    state.selectedModel = models.includes(storedModel) ? storedModel : (models[0] || null);
+    if (state.selectedModel !== storedModel) {
+      setStoredPreference('model', state.selectedModel);
+    }
     state.roleMode         = getStoredPreference('role-mode',            roleModes[0]       || 'assistant');
     state.promptTemplate   = getStoredPreference('prompt-template',      promptTemplates[0] || 'default');
     state.voiceProfile     = getStoredPreference('voice-profile',        'auto');
@@ -717,6 +734,14 @@ function switchTab(tab) {
   $('formSignup').style.display = tab === 'signup' ? 'block' : 'none';
   $('loginError').textContent   = '';
   $('signupError').textContent  = '';
+  const title = $('authTitle');
+  const subtitle = $('authSubtitle');
+  if (title) title.textContent = tab === 'signup' ? 'Create your account' : 'Welcome back';
+  if (subtitle) {
+    subtitle.textContent = tab === 'signup'
+      ? 'Register to save conversations, uploads, and AI preferences.'
+      : 'Sign in to continue your Aegis AI workspace.';
+  }
 }
 
 function getActiveAuthTab() {
@@ -766,7 +791,8 @@ function recoverPassword() {
 
 function continueAsGuest() {
   persistGuestSession();
-  showApp();
+  clearTabActiveChat();
+  showApp({ startFresh: true });
 }
 
 
@@ -811,7 +837,10 @@ async function doLogin() {
       return;
     }
   } catch (err) {
-    errEl.textContent = window.location.protocol === 'file:' ? 'Redirecting to local server. If it does not open, run uvicorn src.main:app --reload and open http://127.0.0.1:8000/frontend/index.html.' : 'Login failed. Please check your connection.';
+    const localHint = apiDisplayBase() === getPreferredLocalApiBase()
+      ? 'Login failed. Start the backend with uvicorn src.main:app --reload and keep it running on http://127.0.0.1:8000.'
+      : 'Login failed. Please check your connection.';
+    errEl.textContent = window.location.protocol === 'file:' ? 'Redirecting to local server. If it does not open, run uvicorn src.main:app --reload and open http://127.0.0.1:8000/frontend/index.html.' : localHint;
   }
 
   if (btnText) btnText.style.display = 'block';
@@ -821,7 +850,11 @@ async function doLogin() {
 
 async function doSignup() {
   if (getActiveAuthTab() !== 'signup') return;
-  const name = $('signupName').value.trim();
+  const firstName = $('signupFirstName')?.value.trim() || '';
+  const lastName = $('signupLastName')?.value.trim() || '';
+  const name = `${firstName} ${lastName}`.trim();
+  const hiddenName = $('signupName');
+  if (hiddenName) hiddenName.value = name;
   const email = $('signupEmail').value.trim();
   const password = $('signupPassword').value;
   const errEl = $('signupError');
@@ -859,7 +892,10 @@ async function doSignup() {
     state.isGuest = false;
     loginSuccess(data.user || { name, email });
   } catch (err) {
-    errEl.textContent = window.location.protocol === 'file:' ? 'Redirecting to local server. If it does not open, run uvicorn src.main:app --reload and open http://127.0.0.1:8000/frontend/index.html.' : 'Signup failed. Please check your connection.';
+    const localHint = apiDisplayBase() === getPreferredLocalApiBase()
+      ? 'Signup failed. Start the backend with uvicorn src.main:app --reload and keep it running on http://127.0.0.1:8000.'
+      : 'Signup failed. Please check your connection.';
+    errEl.textContent = window.location.protocol === 'file:' ? 'Redirecting to local server. If it does not open, run uvicorn src.main:app --reload and open http://127.0.0.1:8000/frontend/index.html.' : localHint;
   }
 }
 
@@ -868,6 +904,7 @@ function loginSuccess(user) {
   state.isGuest = false;
   state.isAdmin = state.isAdmin || user?.role === 'admin' || user?.email === 'admin@aegis.ai';
   persistUser(user);
+  clearTabActiveChat();
 
   const btnText = $('loginBtnText');
   const spinner = $('loginSpinner');
@@ -877,10 +914,11 @@ function loginSuccess(user) {
   if (spinner) spinner.style.display = 'none';
   if (loginBtn) loginBtn.disabled = false;
 
-  showApp();
+  showApp({ startFresh: true });
 }
 
-function showApp() {
+function showApp(options = {}) {
+  const { startFresh = false } = options;
   const authScreen = document.getElementById('authScreen');
   const appWrapper = document.getElementById('appWrapper');
 
@@ -924,7 +962,7 @@ function showApp() {
   loadTheme();
   loadHistory();
   loadIndexedSources();
-  startNewChat();
+  if (startFresh) startNewChat();
 }
 
 
@@ -1193,7 +1231,7 @@ function renderWelcome() {
       <div class="welcome-logo-wrap">
         <div class="logo-glow-ring welcome-glow"></div>
         <div class="welcome-spinner">
-          <img class="welcome-logo-img" src="logo.png" alt="Aegis AI"
+          <img class="welcome-logo-img" src="${APP_LOGO_SRC}" alt="Aegis AI"
             onerror="this.style.display='none';this.nextElementSibling.style.display='block'"/>
           <svg class="welcome-svg-fallback" style="display:none" viewBox="0 0 100 100">
             <defs>
@@ -1271,6 +1309,7 @@ async function loadHistory() {
       if (hl) hl.style.display = 'none';
       const sessions = Array.isArray(data) ? data : (data.chats || data.sessions || []);
       renderHistoryList(sessions);
+      restoreActiveSession(sessions);
       state._historyLoading = false;
       return;
     }
@@ -1279,6 +1318,7 @@ async function loadHistory() {
   if (hl) hl.style.display = 'none';
   const sessions = JSON.parse(localStorage.getItem(sessionsStorageKey()) || '[]');
   renderHistoryList(sessions);
+  restoreActiveSession(sessions);
   state._historyLoading = false;
 }
 
@@ -1286,10 +1326,12 @@ function restoreActiveSession(sessions) {
   const visibleSessions = (sessions || []).filter(session => !state.archivedChats?.[session.id]);
   if (!visibleSessions.length) return;
   const preferredId = state.chatId || getStoredActiveChatId();
-  const match = preferredId
-    ? visibleSessions.find(session => session.id === preferredId)
-    : visibleSessions[0];
-  if (!match) return;
+  if (!preferredId) return;
+  const match = visibleSessions.find(session => session.id === preferredId);
+  if (!match) {
+    clearTabActiveChat();
+    return;
+  }
 
   const mi = document.getElementById('messagesInner');
   const alreadyShowingActiveChat =
@@ -1593,6 +1635,7 @@ async function loadIndexedSources() {
 }
 
 async function toggleVoice() {
+  console.log('VOICE_BUTTON_CLICKED');
   if (window.location.protocol === 'file:') {
     showToast('Opening the app server for microphone access...');
     setTimeout(() => { window.location.href = `${apiDisplayBase()}?auto_guest=1&auto_mic=1`; }, 250);
@@ -1605,6 +1648,7 @@ async function toggleVoice() {
 async function startVoiceRecording() {
   if (state.recording) return;
   try {
+    console.log('VOICE_RECORDING_START');
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
       showVoiceError('Audio recording is not supported in this browser. Open the app in Chrome.');
       return;
@@ -1651,31 +1695,67 @@ async function startVoiceRecording() {
 
 async function transcribeRecordedAudio() {
   const blob = new Blob(state.audioChunks || [], { type: state.audioMimeType || 'audio/webm' });
-  if (!blob.size) throw new Error('No speech detected. Please try again.');
+  if (!blob.size) throw new Error('No speech detected.');
 
   const form = new FormData();
   const lang = detectSpeechLanguage(state.liveTranscript);
   form.append('audio', blob, `voice.${(state.audioMimeType || 'audio/webm').includes('mp4') ? 'm4a' : 'webm'}`);
   form.append('language', String(lang || '').slice(0, 2));
+  console.log('AUDIO_BLOB_CREATED');
+  console.log('AUDIO_UPLOAD_START');
 
-  const res = await fetch(apiUrl('/api/voice/voice-chat'), {
-    method:  'POST',
-    headers: getUploadHeaders(),
-    body:    form,
-  });
+  const endpoints = [
+    '/voice/voice-chat',
+    '/voice',
+    '/transcribe',
+    '/audio',
+    '/speech',
+    '/api/voice/voice-chat',
+    '/api/voice',
+    '/api/transcribe',
+    '/api/audio',
+    '/api/speech',
+  ];
 
-  if (!res.ok) {
-    let errMsg = `Voice transcription failed (${res.status})`;
-    try { const data = await res.json(); errMsg = data.detail || data.message || errMsg; } catch {}
-    throw new Error(errMsg);
+  let lastError = null;
+  for (const endpoint of endpoints) {
+    try {
+      console.log('TRANSCRIPTION_START');
+      const res = await fetch(apiUrl(endpoint), {
+        method:  'POST',
+        headers: getUploadHeaders(),
+        body:    form,
+      });
+
+      if (!res.ok) {
+        let errMsg = `Voice transcription failed (${res.status})`;
+        try { const data = await res.json(); errMsg = data.detail || data.message || errMsg; } catch {}
+        if (res.status === 404) {
+          lastError = new Error(errMsg);
+          continue;
+        }
+        console.log('AUDIO_UPLOAD_FAILED');
+        throw new Error(errMsg);
+      }
+
+      const data = await res.json();
+      console.log('AUDIO_UPLOAD_SUCCESS');
+      console.log('TRANSCRIPTION_SUCCESS');
+      return String(data.text || '').trim();
+    } catch (err) {
+      lastError = err;
+      if (String(err?.message || '').includes('404')) continue;
+    }
   }
 
-  const data = await res.json();
-  return String(data.text || '').trim();
+  console.log('AUDIO_UPLOAD_FAILED');
+  console.log('TRANSCRIPTION_FAILED');
+  throw new Error(lastError?.message || 'Voice transcription failed.');
 }
 
 async function finishVoiceInput() {
   if (!state.recording || state.voiceSubmitting) return;
+  console.log('VOICE_RECORDING_STOP');
   const tt = $('transcriptText');
   const vs = $('voiceStatus');
   if (tt) tt.textContent = 'Transcribing audio...';
@@ -1695,8 +1775,9 @@ async function finishVoiceInput() {
   });
 
   try {
+    console.log('AUDIO_BLOB_CREATED');
     const transcript = await transcribeRecordedAudio();
-    if (!transcript) throw new Error('No speech detected. Please try again.');
+    if (!transcript) throw new Error('No speech detected.');
     const ui = document.getElementById('userInput');
     if (ui) { ui.value = transcript; growInput(ui); }
     resetVoiceUI();
@@ -1736,6 +1817,7 @@ function resetVoiceUI() {
 }
 
 function showVoiceError(message) {
+  console.log('VOICE_UPLOAD_FAILED', message);
   const vt = $('voiceTranscript');
   const tt = $('transcriptText');
   const vs = $('voiceStatus');
@@ -1891,50 +1973,56 @@ function buildImagePayload(images) {
 
 async function sendStreaming(query, images, attachments = []) {
   setLoading(true, true);
-  const controller    = new AbortController();
+  const controller = new AbortController();
   state.currentStream = controller;
-  const aiDiv         = appendAIMsgStreaming();
-  let fullText        = '';
-  let sources         = [];
-  let meta            = {};
+  const aiDiv = appendAIMsgStreaming();
+  let fullText = '';
+  let sources = [];
+  let meta = {};
+  let doneReceived = false;
   let fallbackAttempted = false;
+  let streamTimedOut = false;
+  const timeoutId = setTimeout(() => {
+    streamTimedOut = true;
+    controller.abort();
+  }, 90000);
 
   try {
     const body = {
       query,
-      chat_id:          state.chatId,
-      user:             state.user?.name || 'User',
-      model:            state.selectedModel,
-      role_mode:        state.roleMode,
-      prompt_template:  state.promptTemplate,
+      chat_id: state.chatId,
+      user: state.user?.name || 'User',
+      role_mode: state.roleMode,
+      prompt_template: state.promptTemplate,
       use_hybrid_search: true,
     };
-    if (images.length      > 0) body.images      = buildImagePayload(images);
+    if (images.length > 0) body.images = buildImagePayload(images);
     if (attachments.length > 0) body.attachments = attachments;
 
     const res = await fetch(apiUrl('/api/stream'), {
-      method:  'POST',
+      method: 'POST',
       headers: getAuthHeaders(),
-      body:    JSON.stringify(body),
-      signal:  controller.signal,
+      body: JSON.stringify(body),
+      signal: controller.signal,
     });
-    if (!res.ok) {
-  throw new Error(`Stream failed: ${res.status}`);
-}
 
-    if (res.status === 401) { handleAuthError(); throw new Error('Unauthorized'); }
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    if (res.status === 401) {
+      handleAuthError();
+      throw new Error('Unauthorized');
+    }
+    if (!res.ok) throw new Error(`Stream failed: ${res.status} ${res.statusText}`);
 
-    const reader  = res.body.getReader();
+    const reader = res.body.getReader();
     const decoder = new TextDecoder();
-    let buffer    = '';
+    let buffer = '';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop();
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
         const trimmed = line.trim();
@@ -1943,18 +2031,26 @@ async function sendStreaming(query, images, attachments = []) {
         if (!raw || raw === '[DONE]') continue;
 
         try {
-          const data  = JSON.parse(raw);
+          const data = JSON.parse(raw);
           const token = data.token || data.text || data.content || '';
-          if (token) { fullText += token; updateStreamBubble(aiDiv, fullText); }
+          if (token) {
+            fullText += token;
+            updateStreamBubble(aiDiv, fullText);
+          }
           if (data.response || data.answer) {
             fullText = data.response || data.answer;
-            sources  = data.sources || [];
-            meta     = { ...meta, ...data };
+            sources = data.sources || [];
+            meta = { ...meta, ...data };
             updateStreamBubble(aiDiv, fullText);
           }
           if (data.sources) sources = data.sources;
-          if (data.done)    { sources = data.sources || sources; meta = { ...meta, ...data }; }
-          if (data.error)   throw new Error(data.error);
+          if (data.error) throw new Error(data.error);
+          if (data.done) {
+            sources = data.sources || sources;
+            meta = { ...meta, ...data };
+            doneReceived = true;
+            break;
+          }
         } catch (jsonErr) {
           if (raw && typeof raw === 'string' && raw.length < 2000) {
             try {
@@ -1971,10 +2067,17 @@ async function sendStreaming(query, images, attachments = []) {
             updateStreamBubble(aiDiv, fullText);
           }
         }
+
+        if (doneReceived) break;
+      }
+
+      if (doneReceived) {
+        try { await reader.cancel(); } catch {}
+        break;
       }
     }
 
-    if (!fullText.trim()) {
+    if (!fullText.trim() && !doneReceived) {
       aiDiv.remove();
       fallbackAttempted = true;
       await sendBatch(query, images, attachments);
@@ -1988,39 +2091,46 @@ async function sendStreaming(query, images, attachments = []) {
       usage:          meta.usage          || {},
       roleMode:       meta.role_mode      || state.roleMode,
       promptTemplate: meta.prompt_template || state.promptTemplate,
-      retrieval:      meta.retrieval       || {},
+      retrieval:      meta.retrieval      || {},
     });
     saveMsgLocal(state.chatId, 'assistant', fullText);
     saveSessionAfterSend(query);
-
   } catch (err) {
+    if (err.message === 'Unauthorized') {
+      aiDiv.remove();
+      appendAIMsg('Your session expired. Please sign in again.', { sources: [], route: 'error' });
+      return;
+    }
     if (err.name === 'AbortError') {
       const cursor = aiDiv.querySelector('.streaming-cursor');
       if (cursor) cursor.remove();
       const bubble = aiDiv.querySelector('.bubble-ai');
-      if (bubble && bubble.innerText.trim()) {
+      if (bubble && bubble.innerText.trim() && !streamTimedOut) {
         const body = aiDiv.querySelector('.ai-body');
         if (body) body.appendChild(buildMetaRow(aiDiv.id, bubble.innerText, { sources: [], route: 'stream' }));
         saveMsgLocal(state.chatId, 'assistant', bubble.innerText);
         saveSessionAfterSend(query);
+      } else {
+        aiDiv.remove();
+        appendAIMsg('Unable to contact AI provider. Please try again.', { sources: [], route: 'error' });
       }
-   } else {
-  console.error('Stream error:', err);
+    } else {
+      console.error('Stream error:', err);
 
-  if (!fallbackAttempted) {
-    aiDiv.remove();
-    fallbackAttempted = true;
-    await sendBatch(query, images, attachments);
-    return;
-  }
+      if (!fallbackAttempted) {
+        aiDiv.remove();
+        fallbackAttempted = true;
+        await sendBatch(query, images, attachments);
+        return;
+      }
 
-  const cursor = aiDiv.querySelector('.streaming-cursor');
-  if (cursor) cursor.remove();
+      const cursor = aiDiv.querySelector('.streaming-cursor');
+      if (cursor) cursor.remove();
 
-  showToast(`Stream error: ${err.message}`);
-}
-      
+      showToast(`Stream error: ${err.message}`);
+    }
   } finally {
+    clearTimeout(timeoutId);
     setLoading(false, false);
     state.currentStream = null;
     scrollDown();
@@ -2036,7 +2146,6 @@ async function sendBatch(query, images, attachments = []) {
       query,
       chat_id:          state.chatId,
       user:             state.user?.name || 'User',
-      model:            state.selectedModel,
       role_mode:        state.roleMode,
       prompt_template:  state.promptTemplate,
       use_hybrid_search: true,
@@ -2192,7 +2301,6 @@ function finalizeStreamBubble(div, text, meta) {
   const body = div.querySelector('.ai-body');
   if (body) {
     body.appendChild(buildMetaRow(div.id, text, meta));
-    if (meta.sources?.length) body.appendChild(buildSources(meta.sources));
   }
 }
 
@@ -2210,7 +2318,6 @@ function appendAIMsg(text, meta = {}, timestamp) {
   bubble.innerHTML = renderMd(text);
   body.appendChild(bubble);
   body.appendChild(buildMetaRow(id, text, meta, timestamp));
-  if (meta.sources?.length) body.appendChild(buildSources(meta.sources));
 
   div.innerHTML = `
     <div class="ai-ava">
@@ -2266,24 +2373,6 @@ function buildMetaRow(msgId, text, meta, timestamp) {
   `;
   updateSpeakButtons();
   return row;
-}
-
-function buildSources(sources) {
-  const bar     = document.createElement('div');
-  bar.className = 'sources-bar';
-  uniqueSources(sources).forEach(src => {
-    const chip     = document.createElement('span');
-    chip.className = 'source-chip';
-    chip.innerHTML = `
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2"/>
-        <polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="2"/>
-      </svg>
-      ${escHtml(typeof src === 'string' ? src : src.source || src.name || 'source')}
-    `;
-    bar.appendChild(chip);
-  });
-  return bar;
 }
 
 function appendTyping() {

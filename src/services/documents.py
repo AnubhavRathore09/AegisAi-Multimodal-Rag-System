@@ -50,6 +50,54 @@ def read_pdf(path: Path) -> str:
     return "\n".join(page.extract_text() or "" for page in reader.pages).strip()
 
 
+def _read_document_file(path: Path) -> str:
+    suffix = path.suffix.lower()
+    if suffix == ".pdf":
+        return read_pdf(path)
+    return path.read_text(encoding="utf-8", errors="ignore")
+
+
+def load_uploaded_document_text(upload_id: str | None, fallback_text: str = "") -> str:
+    """
+    Resolve the full original text for an uploaded document.
+
+    The chat payload only carries a lightweight preview, so we recover the
+    full file text from the indexed upload metadata when possible.
+    """
+    cleaned_upload_id = str(upload_id or "").strip()
+    if cleaned_upload_id:
+        matching_docs = [
+            doc for doc in vector_store.documents
+            if str(doc.get("upload_id", "")).strip() == cleaned_upload_id
+            and str(doc.get("kind", "")).strip() == "document"
+        ]
+        if matching_docs:
+            source_path = str(matching_docs[0].get("path", "") or "").strip()
+            if source_path:
+                candidate_path = Path(source_path)
+                if candidate_path.exists() and candidate_path.is_file():
+                    try:
+                        text = _read_document_file(candidate_path)
+                        normalized = " ".join(text.split()).strip()
+                        if normalized:
+                            return normalized
+                    except Exception:
+                        pass
+
+            chunks: list[str] = []
+            seen: set[str] = set()
+            for doc in matching_docs:
+                chunk = " ".join(str(doc.get("text", "")).split()).strip()
+                if not chunk or chunk in seen:
+                    continue
+                seen.add(chunk)
+                chunks.append(chunk)
+            if chunks:
+                return " ".join(chunks).strip()
+
+    return " ".join(str(fallback_text or "").split()).strip()
+
+
 def save_upload(content: bytes, suffix: str) -> Path:
     digest = hashlib.sha256(content).hexdigest()[:16]
     path = UPLOAD_DIR / f"{digest}{suffix}"
@@ -78,11 +126,21 @@ async def ingest_upload(file: UploadFile, user_id: str | None = None) -> UploadR
     upload_id = str(uuid.uuid4())
 
     if suffix in ALLOWED_IMAGE_TYPES:
+        print("OCR_START", file.filename or saved_path.name, flush=True)
+        print("OCR_IMAGE_RECEIVED", len(content), flush=True)
+        app_logger.log("OCR_IMAGE_RECEIVED", filename=file.filename or saved_path.name, bytes=len(content), user_id=user_id or "guest")
         extracted_text = await extract_text_from_image_bytes_async(content)
         if not extracted_text:
-            extracted_text = "Image uploaded successfully, but OCR is unavailable or no readable text was detected."
-
-        chunks = chunk_text(extracted_text, settings.chunk_size, settings.chunk_overlap)
+            print("OCR_FAILED", file.filename or saved_path.name, flush=True)
+            app_logger.log("OCR_FAILED", filename=file.filename or saved_path.name, user_id=user_id or "guest")
+            extracted_text = "Unable to extract text from image."
+            chunks = []
+        else:
+            print("OCR_TEXT_EXTRACTED", len(extracted_text), flush=True)
+            print("OCR_TEXT_LENGTH", len(extracted_text), flush=True)
+            print("OCR_SUCCESS", file.filename or saved_path.name, flush=True)
+            app_logger.log("OCR_SUCCESS", filename=file.filename or saved_path.name, chars=len(extracted_text), user_id=user_id or "guest")
+            chunks = chunk_text(extracted_text, settings.chunk_size, settings.chunk_overlap)
         indexed = await asyncio.to_thread(
             vector_store.add_documents,
             [
@@ -104,7 +162,7 @@ async def ingest_upload(file: UploadFile, user_id: str | None = None) -> UploadR
             extracted_text=extracted_text,
             chunks_indexed=indexed,
             chunks=indexed,
-            message="Image uploaded and OCR text indexed.",
+            message="Image uploaded and OCR text indexed." if indexed else "Unable to extract text from image.",
             processing={"status": "completed", "background": False},
         )
         app_logger.log(

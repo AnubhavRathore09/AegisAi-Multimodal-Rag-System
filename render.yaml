@@ -5,8 +5,20 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: python -m uvicorn src.main:app --host 0.0.0.0 --port 8000
     envVars:
-      - key: GROQ_API_KEY
+      - key: GEMINI_API_KEY
         sync: false
+      - key: GEMINI_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai/
+      - key: MODEL_NAME
+        value: gemini-2.5-flash
+      - key: FALLBACK_MODEL_NAME
+        value: ""
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: TAVILY_MAX_RESULTS
+        value: "5"
+      - key: WEB_SEARCH_TIMEOUT_SECONDS
+        value: "12"
       - key: MONGODB_URI
         sync: false
       - key: MONGODB_DB

@@ -28,7 +28,52 @@ RAG_KEYWORDS = {
 }
 MEMORY_KEYWORDS = {"previous", "earlier", "above", "before", "last", "again", "continue", "follow-up", "followup"}
 MULTIMODAL_KEYWORDS = {"image", "photo", "picture", "screenshot", "voice", "audio", "mic", "microphone", "scan", "ocr"}
-SEARCH_KEYWORDS = {"latest", "live", "breaking", "news", "today", "current", "update", "updates", "headline", "headlines"}
+SEARCH_KEYWORDS = {
+    "latest",
+    "live",
+    "breaking",
+    "news",
+    "sports",
+    "today",
+    "current",
+    "recent",
+    "recently",
+    "update",
+    "updates",
+    "headline",
+    "headlines",
+    "winner",
+    "won",
+    "win",
+    "wins",
+    "score",
+    "scores",
+    "weather",
+    "price",
+    "prices",
+    "stock",
+    "stocks",
+    "market",
+    "share",
+    "shares",
+    "gold",
+    "gold rate",
+    "election",
+    "elections",
+    "cricket",
+    "ipl",
+    "nfl",
+    "nba",
+    "football",
+    "match",
+    "matches",
+    "result",
+    "results",
+    "weather in",
+    "temperature",
+    "forecast",
+    "ai news",
+}
 
 
 @dataclass(frozen=True)
@@ -41,7 +86,7 @@ class RouteDecision:
 
     @property
     def use_retrieval(self) -> bool:
-        return self.route in {"rag", "multimodal"}
+        return self.route in {"rag", "multimodal", "search"}
 
     @property
     def use_memory(self) -> bool:
@@ -77,7 +122,7 @@ class LLMRouter:
             return self._normalize("memory", 0.82, "Query refers to earlier conversation context.", "heuristic", False)
 
         if any(keyword in query for keyword in SEARCH_KEYWORDS):
-            return self._normalize("search", 0.86, "Query asks for live or current news.", "heuristic", False)
+            return self._normalize("search", 0.9, "Query asks for live or time-sensitive information.", "heuristic", False)
 
         if any(keyword in query for keyword in RAG_KEYWORDS):
             return self._normalize("rag", 0.8, "Query asks about files or document-grounded knowledge.", "heuristic", False)
@@ -89,6 +134,8 @@ class LLMRouter:
 
     async def classify(self, request, history_count: int = 0) -> RouteDecision:
         heuristic = self.heuristic_route(request, history_count)
+        if heuristic.route == "search":
+            return heuristic
         if not settings.router_use_llm or not llm_service.available:
             return heuristic
 
@@ -111,7 +158,7 @@ Conversation history available: {history_count > 0}
             result = await llm_service.complete_async(
                 prompt,
                 history=None,
-                model=None,
+                model=settings.router_model_name or settings.model_name,
                 role_mode="concise",
                 prompt_template="extract",
             )

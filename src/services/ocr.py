@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image, ImageOps
 
 from src.config import settings
+from src.services.logging_service import app_logger
 
 
 def _preprocess_image(image_bytes: bytes) -> Image.Image:
@@ -57,13 +58,38 @@ def _tesseract_text(image: Image.Image) -> str:
 
 
 def extract_text_from_image_bytes(image_bytes: bytes) -> str:
+    print("OCR_START", flush=True)
+    print("OCR_IMAGE_RECEIVED", len(image_bytes or b""), flush=True)
+    try:
+        app_logger.log("OCR_START", bytes=len(image_bytes or b""))
+    except Exception:
+        pass
     image = _preprocess_image(image_bytes)
     text = _easyocr_text(image)
     if text:
+        print("OCR_TEXT_EXTRACTED", len(text), flush=True)
+        print("OCR_TEXT_LENGTH", len(text), flush=True)
+        print("OCR_SUCCESS", flush=True)
+        try:
+            app_logger.log("OCR_SUCCESS", chars=len(text))
+        except Exception:
+            pass
         return text
     text = _tesseract_text(image)
     if text:
+        print("OCR_TEXT_EXTRACTED", len(text), flush=True)
+        print("OCR_TEXT_LENGTH", len(text), flush=True)
+        print("OCR_SUCCESS", flush=True)
+        try:
+            app_logger.log("OCR_SUCCESS", chars=len(text))
+        except Exception:
+            pass
         return text
+    print("OCR_FAILED", flush=True)
+    try:
+        app_logger.log("OCR_FAILED")
+    except Exception:
+        pass
     return ""
 
 

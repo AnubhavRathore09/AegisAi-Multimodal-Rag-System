@@ -70,12 +70,39 @@ async def analytics():
     }
 
 
-@router.post("/voice/voice-chat")
-async def voice_chat(audio: UploadFile = File(...), language: str | None = Form(default=None)):
+async def _voice_chat_impl(audio: UploadFile = File(...), language: str | None = Form(default=None)):
+    print("AUDIO_UPLOAD_START", audio.filename or "voice.webm", flush=True)
     content = await audio.read()
-    text = await speech_service.transcribe_async(audio.filename or "voice.webm", content, language=language)
+    print("AUDIO_RECEIVED", len(content), flush=True)
+    app_logger.log("AUDIO_RECEIVED", filename=audio.filename or "voice.webm", bytes=len(content), language=language or "auto")
+    print("TRANSCRIPTION_START", audio.filename or "voice.webm", flush=True)
+    app_logger.log("TRANSCRIPTION_START", filename=audio.filename or "voice.webm", bytes=len(content), language=language or "auto")
+    try:
+        text = await speech_service.transcribe_async(audio.filename or "voice.webm", content, language=language)
+    except Exception:
+        print("TRANSCRIPTION_FAILED", audio.filename or "voice.webm", flush=True)
+        app_logger.log("TRANSCRIPTION_FAILED", filename=audio.filename or "voice.webm", language=language or "auto")
+        raise
+    print("TRANSCRIPTION_SUCCESS", audio.filename or "voice.webm", flush=True)
+    app_logger.log("TRANSCRIPTION_SUCCESS", filename=audio.filename or "voice.webm", language=language or "auto")
+    print("AUDIO_UPLOAD_SUCCESS", audio.filename or "voice.webm", flush=True)
+    app_logger.log("AUDIO_UPLOAD_SUCCESS", filename=audio.filename or "voice.webm", language=language or "auto")
     app_logger.log("voice", filename=audio.filename or "voice.webm", language=language or "auto")
     return {"text": text}
+
+
+@router.post("/voice/voice-chat")
+@router.post("/api/voice/voice-chat")
+@router.post("/voice")
+@router.post("/api/voice")
+@router.post("/transcribe")
+@router.post("/api/transcribe")
+@router.post("/audio")
+@router.post("/api/audio")
+@router.post("/speech")
+@router.post("/api/speech")
+async def voice_chat(audio: UploadFile = File(...), language: str | None = Form(default=None)):
+    return await _voice_chat_impl(audio=audio, language=language)
 
 
 @router.post("/api/evaluate_batch")
@@ -104,7 +131,10 @@ async def evaluate_batch(payload: BatchEvaluationRequest):
 @router.get("/api/features")
 async def features():
     return {
-        "models": settings.available_models,
+        "provider": "gemini",
+        "active_model": settings.model_name,
+        "models": [settings.model_name],
+        "live_search_enabled": bool(settings.tavily_api_key),
         "role_modes": settings.role_modes,
         "prompt_templates": settings.prompt_templates,
         "features": {

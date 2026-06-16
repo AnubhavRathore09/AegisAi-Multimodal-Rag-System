@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from difflib import SequenceMatcher
 
+from src.config import settings
 from src.services.llm import llm_service
 
 
@@ -123,7 +124,7 @@ Rules:
 Query: {query}
 """
 
-    result = llm_service.complete(prompt)
+    result = llm_service.complete(prompt, model=settings.router_model_name or settings.model_name, role_mode="concise", prompt_template="extract")
     candidate = normalize_query(result.text)
     original = normalize_query(query)
 

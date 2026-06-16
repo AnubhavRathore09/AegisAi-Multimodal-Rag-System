@@ -13,8 +13,13 @@ database:
   collection: documents
 
 llm:
-  provider: groq
-  model: llama3-70b
+  provider: gemini
+  model: gemini-2.5-flash
+  fallback_model: ""
+
+live_search:
+  provider: tavily
+  enabled: true
 
 memory:
   enabled: true

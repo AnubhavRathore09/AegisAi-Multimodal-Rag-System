@@ -196,5 +196,213 @@
     "source": "mongodb_notes.txt",
     "kind": "document",
     "path": "/Users/anubhavrathore0910/AegisAI/data/mongodb_notes.txt"
+  },
+  {
+    "text": "Data Mining and Warehousing Unit I \u2013 Introduction to Data Mining 1. Explain the concept of data mining and discuss its major functionalities used in knowledge discovery. 2. Describe the importance of data preprocessing in data mining and explain different data cleaning techniques used to handle missing or noisy data. 3. Discuss the evolution of database technology and explain why data mining became necessary. 4. Explain different forms of data preprocessing, including data integration and data transformation, with suitable examples. 5. Write a detailed note on data reduction techniques such as dimensionality reduction, numerosity reduction, and data compression. Unit II \u2013 Concept Description and Association Rules 1. Define data generalization and explain how analytical characterization is ",
+    "source": "data_mining_questions.pdf",
+    "kind": "document",
+    "upload_id": "9084513e-521c-46a1-bee4-a1ad5672c287",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/493bea5a0833ef77.pdf"
+  },
+  {
+    "text": " and Association Rules 1. Define data generalization and explain how analytical characterization is used in describing data patterns. 2. Explain how statistical measures like mean, median, and standard deviation help in summarizing large databases. 3. Describe the process of mining association rules from large transactional databases. 4. Explain the Apriori algorithm used for discovering frequent itemsets with a suitable example. 5. A transactional database contains the following transactions: T1: Milk, Bread, Butter T2: Bread, Butter T3: Milk, Bread T4: Milk, Butter T5: Bread, Butter If the minimum support is 40% and minimum confidence is 60%, determine: (a) The frequent itemsets (b) The association rules generated from them. Unit III \u2013 Classification and Prediction 1. Explain the concept",
+    "source": "data_mining_questions.pdf",
+    "kind": "document",
+    "upload_id": "9084513e-521c-46a1-bee4-a1ad5672c287",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/493bea5a0833ef77.pdf"
+  },
+  {
+    "text": "sociation rules generated from them. Unit III \u2013 Classification and Prediction 1. Explain the concept of classification in data mining and discuss its applications. 2. Describe the Decision Tree method for classification with advantages and limitations. 3. Explain the Bayesian classification technique used in predictive analysis. 4. Discuss the k-Nearest Neighbor (KNN) classifier and its working principle. 5. Explain the Backpropagation algorithm used in neural networks for classification and prediction. Unit IV \u2013 Cluster Analysis 1. Define cluster analysis and explain the different types of clustering methods used in data mining. 2. Describe the hierarchical clustering techniques, including CURE and Chameleon. 3. Explain the density-based clustering algorithms DBSCAN and OPTICS. 4. Discuss",
+    "source": "data_mining_questions.pdf",
+    "kind": "document",
+    "upload_id": "9084513e-521c-46a1-bee4-a1ad5672c287",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/493bea5a0833ef77.pdf"
+  },
+  {
+    "text": "CURE and Chameleon. 3. Explain the density-based clustering algorithms DBSCAN and OPTICS. 4. Discuss the grid-based clustering methods, including STING and CLIQUE. 5. Consider the dataset: 2, 4, 10, 12, 20, 22. Using K-means clustering with K = 2 and initial centroids C1 = 2 and C2 = 20: (a) Assign the data points to clusters. (b) Calculate the new centroids after one iteration. Unit V \u2013 Data Warehousing 1. Define a data warehouse and explain how it differs from a traditional database system. 2. Explain the multidimensional data model and the concept of data cubes. 3. Describe the star schema, snowflake schema, and fact constellation schema used in data warehousing. 4. Explain the three-tier architecture of a data warehouse with a suitable diagram. 5. Write a detailed note on the data ware",
+    "source": "data_mining_questions.pdf",
+    "kind": "document",
+    "upload_id": "9084513e-521c-46a1-bee4-a1ad5672c287",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/493bea5a0833ef77.pdf"
+  },
+  {
+    "text": " architecture of a data warehouse with a suitable diagram. 5. Write a detailed note on the data warehouse delivery process and data marts.",
+    "source": "data_mining_questions.pdf",
+    "kind": "document",
+    "upload_id": "9084513e-521c-46a1-bee4-a1ad5672c287",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/493bea5a0833ef77.pdf"
+  },
+  {
+    "text": "\u0938\u0947\u0935\u093e \u092e\u0947\u0902, \u0936\u093e\u0916\u093e \u092a\u094d\u0930\u092c\u0902\u0927\u0915 \u092e\u0939\u094b\u0926\u092f, \u092a\u0902\u091c\u093e\u092c \u0928\u0947\u0936\u0928\u0932 \u092c\u0948\u0902\u0915, \u0936\u093e\u0916\u093e \u092b\u0930\u094d\u0930\u0941\u0916\u093e\u092c\u093e\u0926 \u0935\u093f\u0937\u092f: \u0916\u093e\u0924\u0947 \u092e\u0947\u0902 \u0911\u0928\u0932\u093e\u0907\u0928 \u091f\u094d\u0930\u093e\u0902\u091c\u0948\u0915\u094d\u0936\u0928 \u092a\u0941\u0928\u0903 \u091a\u093e\u0932\u0942 \u0915\u0930\u093e\u0928\u0947 \u0939\u0947\u0924\u0941 \u0906\u0935\u0947\u0926\u0928 \u092e\u0939\u094b\u0926\u092f, \u0938\u0935\u093f\u0928\u092f \u0928\u093f\u0935\u0947\u0926\u0928 \u0939\u0948 \u0915\u093f \u092e\u0947\u0930\u093e \u0928\u093e\u092e \u0905\u0928\u0941\u092d\u0935 \u0930\u093e\u0920\u094c\u0930 S/O \u092d\u0942\u092a\u0947\u0928\u094d\u0926\u094d\u0930 \u0938\u093f\u0902\u0939 \u0930\u093e\u0920\u094c\u0930 \u0939\u0948\u0964 \u092e\u0947\u0930\u093e \u0916\u093e\u0924\u093e \u0906\u092a\u0915\u0947 \u092c\u0948\u0902\u0915 \u092e\u0947\u0902 \u0938\u0902\u091a\u093e\u0932\u093f\u0924 \u0939\u0948, \u091c\u093f\u0938\u0915\u093e \u0935\u093f\u0935\u0930\u0923 \u0928\u093f\u092e\u094d\u0928\u0932\u093f\u0916\u093f\u0924 \u0939\u0948\u2014 \u0916\u093e\u0924\u093e \u0938\u0902\u0916\u094d\u092f\u093e: 0169000109747192 IFSC \u0915\u094b\u0921: PUNB0016900 \u092a\u093f\u091b\u0932\u0947 9 \u0926\u093f\u0928\u094b\u0902 \u0938\u0947 \u092e\u0947\u0930\u0947 \u0916\u093e\u0924\u0947 \u092e\u0947\u0902 \u0911\u0928\u0932\u093e\u0907\u0928 \u0932\u0947\u0928-\u0926\u0947\u0928 \u0915\u0940 \u0938\u0941\u0935\u093f\u0927\u093e \u092c\u0902\u0926 \u0939\u0948, \u091c\u093f\u0938\u0915\u0947 \u0915\u093e\u0930\u0923 \u092e\u0941\u091d\u0947 \u0915\u093e\u092b\u0940 \u092a\u0930\u0947\u0936\u093e\u0928\u0940 \u0915\u093e \u0938\u093e\u092e\u0928\u093e \u0915\u0930\u0928\u093e \u092a\u0921\u093c \u0930\u0939\u093e \u0939\u0948\u0964 \u092e\u0939\u094b\u0926\u092f, \u092e\u0948\u0902 \u090f\u0915 \u091b\u093e\u0924\u094d\u0930 \u0939\u0942\u0901 \u0914\u0930 \u092c\u093e\u0939\u0930 \u0930\u0939\u0915\u0930 \u092a\u0922\u093c\u093e\u0908 \u0915\u0930 \u0930\u0939\u093e \u0939\u0942\u0901, \u0907\u0938\u0932\u093f\u090f \u092e\u0947\u0930\u0947 \u0932\u093f\u090f \u0911\u0928\u0932\u093e\u0907\u0928 \u091f\u094d\u0930\u093e\u0902\u091c\u0948\u0915\u094d\u0936\u0928 \u0905\u0924\u094d\u092f\u0902\u0924 \u0906\u0935\u0936\u094d\u092f\u0915 \u0939\u0948\u0964 \u0905\u0924\u0903 \u0906\u092a\u0938\u0947 \u0935\u093f\u0928\u092e\u094d\u0930 \u0928\u093f\u0935\u0947\u0926\u0928 \u0939\u0948 \u0915\u093f \u0915\u0943\u092a\u092f\u093e \u092e\u0947\u0930\u0947 \u0916\u093e\u0924\u0947 \u0915\u0940 \u0935\u093e\u0930\u094d\u0937\u093f\u0915 \u0915\u094d\u0930\u0947\u0921\u093f\u091f \u0938\u0940\u092e\u093e (Annual Credit Limit) \u0915\u094b \u0938\u0902\u0936\u094b\u0927\u093f\u0924 \u0915\u0930\u0924\u0947 \u0939\u0941\u090f \u092e\u0947\u0930\u0947 \u0916\u093e\u0924\u0947 \u092e\u0947\u0902 \u0911\u0928\u0932\u093e\u0907\u0928 \u0932\u0947\u0928-\u0926\u0947\u0928 \u0915\u0940 \u0938\u0941\u0935\u093f\u0927\u093e \u091c\u0932\u094d\u0926 \u0938\u0947 \u091c\u0932\u094d\u0926 \u092a\u0941\u0928\u0903 \u091a\u093e\u0932\u0942 \u0915\u0930\u0928\u0947 \u0915\u0940 \u0915\u0943\u092a\u093e \u0915\u0930\u0947\u0902\u0964 \u0907\u0938\u0915\u0947 \u0932\u093f\u090f \u092e\u0948\u0902 \u0906\u092a\u0915\u093e \u0938\u0926\u093e \u0906\u092d\u093e\u0930\u0940 \u0930\u0939\u0942\u0901\u0917\u093e\u0964 \u0927\u0928\u094d\u092f\u0935\u093e\u0926\u0964 \u092d\u0935\u0926\u0940\u092f, \u0928\u093e\u092e: \u0905\u0928\u0941\u092d\u0935 \u0930\u093e\u0920",
+    "source": "application_pnb.pdf",
+    "kind": "document",
+    "upload_id": "7cc17937-164e-449d-87c9-c9b0bb703f4c",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/f1e3874ced4090ae.pdf"
+  },
+  {
+    "text": "\u091c\u0932\u094d\u0926 \u092a\u0941\u0928\u0903 \u091a\u093e\u0932\u0942 \u0915\u0930\u0928\u0947 \u0915\u0940 \u0915\u0943\u092a\u093e \u0915\u0930\u0947\u0902\u0964 \u0907\u0938\u0915\u0947 \u0932\u093f\u090f \u092e\u0948\u0902 \u0906\u092a\u0915\u093e \u0938\u0926\u093e \u0906\u092d\u093e\u0930\u0940 \u0930\u0939\u0942\u0901\u0917\u093e\u0964 \u0927\u0928\u094d\u092f\u0935\u093e\u0926\u0964 \u092d\u0935\u0926\u0940\u092f, \u0928\u093e\u092e: \u0905\u0928\u0941\u092d\u0935 \u0930\u093e\u0920\u094c\u0930 \u092e\u094b\u092c\u093e\u0907\u0932 \u0928\u0902\u092c\u0930: 9219152898 \u092a\u0924\u093e: \u0917\u094d\u0930\u093e\u092e \u092c\u0930\u094c\u0928, \u092a\u094b\u0938\u094d\u091f \u092c\u0930\u094c\u0928, \u092b\u0930\u094d\u0930\u0941\u0916\u093e\u092c\u093e\u0926 \u0926\u093f\u0928\u093e\u0902\u0915: 07 / 04 / 2026",
+    "source": "application_pnb.pdf",
+    "kind": "document",
+    "upload_id": "7cc17937-164e-449d-87c9-c9b0bb703f4c",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/f1e3874ced4090ae.pdf"
+  },
+  {
+    "text": "\u0938\u0947\u0935\u093e \u092e\u0947\u0902, \u0936\u093e\u0916\u093e \u092a\u094d\u0930\u092c\u0902\u0927\u0915 \u092e\u0939\u094b\u0926\u092f, \u092a\u0902\u091c\u093e\u092c \u0928\u0947\u0936\u0928\u0932 \u092c\u0948\u0902\u0915, \u0936\u093e\u0916\u093e \u092b\u0930\u094d\u0930\u0941\u0916\u093e\u092c\u093e\u0926 \u0935\u093f\u0937\u092f: \u0916\u093e\u0924\u0947 \u092e\u0947\u0902 \u0911\u0928\u0932\u093e\u0907\u0928 \u091f\u094d\u0930\u093e\u0902\u091c\u0948\u0915\u094d\u0936\u0928 \u092a\u0941\u0928\u0903 \u091a\u093e\u0932\u0942 \u0915\u0930\u093e\u0928\u0947 \u0939\u0947\u0924\u0941 \u0906\u0935\u0947\u0926\u0928 \u092e\u0939\u094b\u0926\u092f, \u0938\u0935\u093f\u0928\u092f \u0928\u093f\u0935\u0947\u0926\u0928 \u0939\u0948 \u0915\u093f \u092e\u0947\u0930\u093e \u0928\u093e\u092e \u0905\u0928\u0941\u092d\u0935 \u0930\u093e\u0920\u094c\u0930 S/O \u092d\u0942\u092a\u0947\u0928\u094d\u0926\u094d\u0930 \u0938\u093f\u0902\u0939 \u0930\u093e\u0920\u094c\u0930 \u0939\u0948\u0964 \u092e\u0947\u0930\u093e \u0916\u093e\u0924\u093e \u0906\u092a\u0915\u0947 \u092c\u0948\u0902\u0915 \u092e\u0947\u0902 \u0938\u0902\u091a\u093e\u0932\u093f\u0924 \u0939\u0948, \u091c\u093f\u0938\u0915\u093e \u0935\u093f\u0935\u0930\u0923 \u0928\u093f\u092e\u094d\u0928\u0932\u093f\u0916\u093f\u0924 \u0939\u0948\u2014 \u0916\u093e\u0924\u093e \u0938\u0902\u0916\u094d\u092f\u093e: 0169000109747192 IFSC \u0915\u094b\u0921: PUNB0016900 \u092a\u093f\u091b\u0932\u0947 9 \u0926\u093f\u0928\u094b\u0902 \u0938\u0947 \u092e\u0947\u0930\u0947 \u0916\u093e\u0924\u0947 \u092e\u0947\u0902 \u0911\u0928\u0932\u093e\u0907\u0928 \u0932\u0947\u0928-\u0926\u0947\u0928 \u0915\u0940 \u0938\u0941\u0935\u093f\u0927\u093e \u092c\u0902\u0926 \u0939\u0948, \u091c\u093f\u0938\u0915\u0947 \u0915\u093e\u0930\u0923 \u092e\u0941\u091d\u0947 \u0915\u093e\u092b\u0940 \u092a\u0930\u0947\u0936\u093e\u0928\u0940 \u0915\u093e \u0938\u093e\u092e\u0928\u093e \u0915\u0930\u0928\u093e \u092a\u0921\u093c \u0930\u0939\u093e \u0939\u0948\u0964 \u092e\u0939\u094b\u0926\u092f, \u092e\u0948\u0902 \u090f\u0915 \u091b\u093e\u0924\u094d\u0930 \u0939\u0942\u0901 \u0914\u0930 \u092c\u093e\u0939\u0930 \u0930\u0939\u0915\u0930 \u092a\u0922\u093c\u093e\u0908 \u0915\u0930 \u0930\u0939\u093e \u0939\u0942\u0901, \u0907\u0938\u0932\u093f\u090f \u092e\u0947\u0930\u0947 \u0932\u093f\u090f \u0911\u0928\u0932\u093e\u0907\u0928 \u091f\u094d\u0930\u093e\u0902\u091c\u0948\u0915\u094d\u0936\u0928 \u0905\u0924\u094d\u092f\u0902\u0924 \u0906\u0935\u0936\u094d\u092f\u0915 \u0939\u0948\u0964 \u0905\u0924\u0903 \u0906\u092a\u0938\u0947 \u0935\u093f\u0928\u092e\u094d\u0930 \u0928\u093f\u0935\u0947\u0926\u0928 \u0939\u0948 \u0915\u093f \u0915\u0943\u092a\u092f\u093e \u092e\u0947\u0930\u0947 \u0916\u093e\u0924\u0947 \u0915\u0940 \u0935\u093e\u0930\u094d\u0937\u093f\u0915 \u0915\u094d\u0930\u0947\u0921\u093f\u091f \u0938\u0940\u092e\u093e (Annual Credit Limit) \u0915\u094b \u0938\u0902\u0936\u094b\u0927\u093f\u0924 \u0915\u0930\u0924\u0947 \u0939\u0941\u090f \u092e\u0947\u0930\u0947 \u0916\u093e\u0924\u0947 \u092e\u0947\u0902 \u0911\u0928\u0932\u093e\u0907\u0928 \u0932\u0947\u0928-\u0926\u0947\u0928 \u0915\u0940 \u0938\u0941\u0935\u093f\u0927\u093e \u091c\u0932\u094d\u0926 \u0938\u0947 \u091c\u0932\u094d\u0926 \u092a\u0941\u0928\u0903 \u091a\u093e\u0932\u0942 \u0915\u0930\u0928\u0947 \u0915\u0940 \u0915\u0943\u092a\u093e \u0915\u0930\u0947\u0902\u0964 \u0907\u0938\u0915\u0947 \u0932\u093f\u090f \u092e\u0948\u0902 \u0906\u092a\u0915\u093e \u0938\u0926\u093e \u0906\u092d\u093e\u0930\u0940 \u0930\u0939\u0942\u0901\u0917\u093e\u0964 \u0927\u0928\u094d\u092f\u0935\u093e\u0926\u0964 \u092d\u0935\u0926\u0940\u092f, \u0928\u093e\u092e: \u0905\u0928\u0941\u092d\u0935 \u0930\u093e\u0920",
+    "source": "application_pnb.pdf",
+    "kind": "document",
+    "upload_id": "e37e9edf-0875-4ab1-b6c5-51b25e133139",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/f1e3874ced4090ae.pdf"
+  },
+  {
+    "text": "\u091c\u0932\u094d\u0926 \u092a\u0941\u0928\u0903 \u091a\u093e\u0932\u0942 \u0915\u0930\u0928\u0947 \u0915\u0940 \u0915\u0943\u092a\u093e \u0915\u0930\u0947\u0902\u0964 \u0907\u0938\u0915\u0947 \u0932\u093f\u090f \u092e\u0948\u0902 \u0906\u092a\u0915\u093e \u0938\u0926\u093e \u0906\u092d\u093e\u0930\u0940 \u0930\u0939\u0942\u0901\u0917\u093e\u0964 \u0927\u0928\u094d\u092f\u0935\u093e\u0926\u0964 \u092d\u0935\u0926\u0940\u092f, \u0928\u093e\u092e: \u0905\u0928\u0941\u092d\u0935 \u0930\u093e\u0920\u094c\u0930 \u092e\u094b\u092c\u093e\u0907\u0932 \u0928\u0902\u092c\u0930: 9219152898 \u092a\u0924\u093e: \u0917\u094d\u0930\u093e\u092e \u092c\u0930\u094c\u0928, \u092a\u094b\u0938\u094d\u091f \u092c\u0930\u094c\u0928, \u092b\u0930\u094d\u0930\u0941\u0916\u093e\u092c\u093e\u0926 \u0926\u093f\u0928\u093e\u0902\u0915: 07 / 04 / 2026",
+    "source": "application_pnb.pdf",
+    "kind": "document",
+    "upload_id": "e37e9edf-0875-4ab1-b6c5-51b25e133139",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/f1e3874ced4090ae.pdf"
+  },
+  {
+    "text": "\u0938\u0947\u0935\u093e \u092e\u0947\u0902, \u0936\u093e\u0916\u093e \u092a\u094d\u0930\u092c\u0902\u0927\u0915 \u092e\u0939\u094b\u0926\u092f, \u092a\u0902\u091c\u093e\u092c \u0928\u0947\u0936\u0928\u0932 \u092c\u0948\u0902\u0915, \u0936\u093e\u0916\u093e \u092b\u0930\u094d\u0930\u0941\u0916\u093e\u092c\u093e\u0926 \u0935\u093f\u0937\u092f: \u0916\u093e\u0924\u0947 \u092e\u0947\u0902 \u0911\u0928\u0932\u093e\u0907\u0928 \u091f\u094d\u0930\u093e\u0902\u091c\u0948\u0915\u094d\u0936\u0928 \u092a\u0941\u0928\u0903 \u091a\u093e\u0932\u0942 \u0915\u0930\u093e\u0928\u0947 \u0939\u0947\u0924\u0941 \u0906\u0935\u0947\u0926\u0928 \u092e\u0939\u094b\u0926\u092f, \u0938\u0935\u093f\u0928\u092f \u0928\u093f\u0935\u0947\u0926\u0928 \u0939\u0948 \u0915\u093f \u092e\u0947\u0930\u093e \u0928\u093e\u092e \u0905\u0928\u0941\u092d\u0935 \u0930\u093e\u0920\u094c\u0930 S/O \u092d\u0942\u092a\u0947\u0928\u094d\u0926\u094d\u0930 \u0938\u093f\u0902\u0939 \u0930\u093e\u0920\u094c\u0930 \u0939\u0948\u0964 \u092e\u0947\u0930\u093e \u0916\u093e\u0924\u093e \u0906\u092a\u0915\u0947 \u092c\u0948\u0902\u0915 \u092e\u0947\u0902 \u0938\u0902\u091a\u093e\u0932\u093f\u0924 \u0939\u0948, \u091c\u093f\u0938\u0915\u093e \u0935\u093f\u0935\u0930\u0923 \u0928\u093f\u092e\u094d\u0928\u0932\u093f\u0916\u093f\u0924 \u0939\u0948\u2014 \u0916\u093e\u0924\u093e \u0938\u0902\u0916\u094d\u092f\u093e: 0169000109747192 IFSC \u0915\u094b\u0921: PUNB0016900 \u092a\u093f\u091b\u0932\u0947 9 \u0926\u093f\u0928\u094b\u0902 \u0938\u0947 \u092e\u0947\u0930\u0947 \u0916\u093e\u0924\u0947 \u092e\u0947\u0902 \u0911\u0928\u0932\u093e\u0907\u0928 \u0932\u0947\u0928-\u0926\u0947\u0928 \u0915\u0940 \u0938\u0941\u0935\u093f\u0927\u093e \u092c\u0902\u0926 \u0939\u0948, \u091c\u093f\u0938\u0915\u0947 \u0915\u093e\u0930\u0923 \u092e\u0941\u091d\u0947 \u0915\u093e\u092b\u0940 \u092a\u0930\u0947\u0936\u093e\u0928\u0940 \u0915\u093e \u0938\u093e\u092e\u0928\u093e \u0915\u0930\u0928\u093e \u092a\u0921\u093c \u0930\u0939\u093e \u0939\u0948\u0964 \u092e\u0939\u094b\u0926\u092f, \u092e\u0948\u0902 \u090f\u0915 \u091b\u093e\u0924\u094d\u0930 \u0939\u0942\u0901 \u0914\u0930 \u092c\u093e\u0939\u0930 \u0930\u0939\u0915\u0930 \u092a\u0922\u093c\u093e\u0908 \u0915\u0930 \u0930\u0939\u093e \u0939\u0942\u0901, \u0907\u0938\u0932\u093f\u090f \u092e\u0947\u0930\u0947 \u0932\u093f\u090f \u0911\u0928\u0932\u093e\u0907\u0928 \u091f\u094d\u0930\u093e\u0902\u091c\u0948\u0915\u094d\u0936\u0928 \u0905\u0924\u094d\u092f\u0902\u0924 \u0906\u0935\u0936\u094d\u092f\u0915 \u0939\u0948\u0964 \u0905\u0924\u0903 \u0906\u092a\u0938\u0947 \u0935\u093f\u0928\u092e\u094d\u0930 \u0928\u093f\u0935\u0947\u0926\u0928 \u0939\u0948 \u0915\u093f \u0915\u0943\u092a\u092f\u093e \u092e\u0947\u0930\u0947 \u0916\u093e\u0924\u0947 \u0915\u0940 \u0935\u093e\u0930\u094d\u0937\u093f\u0915 \u0915\u094d\u0930\u0947\u0921\u093f\u091f \u0938\u0940\u092e\u093e (Annual Credit Limit) \u0915\u094b \u0938\u0902\u0936\u094b\u0927\u093f\u0924 \u0915\u0930\u0924\u0947 \u0939\u0941\u090f \u092e\u0947\u0930\u0947 \u0916\u093e\u0924\u0947 \u092e\u0947\u0902 \u0911\u0928\u0932\u093e\u0907\u0928 \u0932\u0947\u0928-\u0926\u0947\u0928 \u0915\u0940 \u0938\u0941\u0935\u093f\u0927\u093e \u091c\u0932\u094d\u0926 \u0938\u0947 \u091c\u0932\u094d\u0926 \u092a\u0941\u0928\u0903 \u091a\u093e\u0932\u0942 \u0915\u0930\u0928\u0947 \u0915\u0940 \u0915\u0943\u092a\u093e \u0915\u0930\u0947\u0902\u0964 \u0907\u0938\u0915\u0947 \u0932\u093f\u090f \u092e\u0948\u0902 \u0906\u092a\u0915\u093e \u0938\u0926\u093e \u0906\u092d\u093e\u0930\u0940 \u0930\u0939\u0942\u0901\u0917\u093e\u0964 \u0927\u0928\u094d\u092f\u0935\u093e\u0926\u0964 \u092d\u0935\u0926\u0940\u092f, \u0928\u093e\u092e: \u0905\u0928\u0941\u092d\u0935 \u0930\u093e\u0920",
+    "source": "application_pnb.pdf",
+    "kind": "document",
+    "upload_id": "c2dd7c54-f760-4c8b-8d0b-8030f076886f",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/f1e3874ced4090ae.pdf"
+  },
+  {
+    "text": "\u091c\u0932\u094d\u0926 \u092a\u0941\u0928\u0903 \u091a\u093e\u0932\u0942 \u0915\u0930\u0928\u0947 \u0915\u0940 \u0915\u0943\u092a\u093e \u0915\u0930\u0947\u0902\u0964 \u0907\u0938\u0915\u0947 \u0932\u093f\u090f \u092e\u0948\u0902 \u0906\u092a\u0915\u093e \u0938\u0926\u093e \u0906\u092d\u093e\u0930\u0940 \u0930\u0939\u0942\u0901\u0917\u093e\u0964 \u0927\u0928\u094d\u092f\u0935\u093e\u0926\u0964 \u092d\u0935\u0926\u0940\u092f, \u0928\u093e\u092e: \u0905\u0928\u0941\u092d\u0935 \u0930\u093e\u0920\u094c\u0930 \u092e\u094b\u092c\u093e\u0907\u0932 \u0928\u0902\u092c\u0930: 9219152898 \u092a\u0924\u093e: \u0917\u094d\u0930\u093e\u092e \u092c\u0930\u094c\u0928, \u092a\u094b\u0938\u094d\u091f \u092c\u0930\u094c\u0928, \u092b\u0930\u094d\u0930\u0941\u0916\u093e\u092c\u093e\u0926 \u0926\u093f\u0928\u093e\u0902\u0915: 07 / 04 / 2026",
+    "source": "application_pnb.pdf",
+    "kind": "document",
+    "upload_id": "c2dd7c54-f760-4c8b-8d0b-8030f076886f",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/f1e3874ced4090ae.pdf"
+  },
+  {
+    "text": "Environment The word \"Environment\" is derived from the French word \"Environner,\" which means to encircle or surround \u2022 The Concept: It is defined as the sum total of all conditions and influences that affect the life and development of an organism. \u2022 Components: It includes all living (biotic) things, non-living (abiotic) things, and man- made properties. Segments of the Environment The environment is traditionally divided into four main spheres: \u2022 Atmosphere: The protective gaseous layer surrounding the Earth. \u2022 Hydrosphere: All water bodies, including oceans, rivers, and groundwater. \u2022 Lithosphere: The Earth's crust and soil layer. \u2022 Biosphere: The \"life zone\" where the atmosphere, hydrosphere, and lithosphere interact to support living organisms. Classification of Environment The lectur",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": "here, and lithosphere interact to support living organisms. Classification of Environment The lecture categorizes the environment into two primary types: \u2022 Natural Environment: Systems that operate without human interference (e.g., oceans, forests, wild grasslands). \u2022 Man-Made (Anthropogenic) Environment: Environments created or heavily modified by humans to suit their needs, such as cities, air -conditioned rooms, or agricultural fields. Environmental Science Environmental Science is the scientific study of the physical components of the earth and how living organisms interact with them. Like assessing how factories and vehicles contribute to smoke/pollution, how deforestation reduces oxygen, and the scientific causes behind the depletion of the ozone layer and global warming. \u2022 Core Focu",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": "n, and the scientific causes behind the depletion of the ozone layer and global warming. \u2022 Core Focus: Studying the Earth, air, and water. \u2022 Impact Analysis: Investigating how living organisms (especially humans) affect the environment. Ecology and Ecosystems While \"Environment\" is the surroundings, Ecology is the scientific study of the interactions between organisms and their environment. \u2022 Biotic Factors: Living components like plants, animals, and microorganisms. \u2022 Abiotic Factors: Non-living components like sunlight, temperature, water, and minerals. \u2022 Interaction: The lecture emphasizes that the quality of the environment directly impacts the development and behavior of the living beings within it. Ecosystem: \u201cNature\u2019s web of life\u201d A biological community of interacting organisms and ",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": "gs within it. Ecosystem: \u201cNature\u2019s web of life\u201d A biological community of interacting organisms and their natural surroundings is called an ecosystem. Living things (plants, animals, microbes) and non-living things (weather, sun, soil, climate) coexist in this intricate \" community \" to create a bubble of life. Every ecosystem is built on two main components: Biotic Factors (Living): Plants, animals, fungi, and bacteria. Abiotic Factors (Non -living): Sunlight, temperature, soil/sand/silt, water, and atmospheric gases. Types of Ecosystems Terrestrial (Land-based): Forests, Grasslands, Deserts, and Tundra. Aquatic (Water-based): (Freshwater): Rivers, lakes, and ponds. Marine: Oceans, coral reefs, and estuaries. The Energy Flow: \u2022 Producers: Green plants and algae that turn sunlight into ene",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": "efs, and estuaries. The Energy Flow: \u2022 Producers: Green plants and algae that turn sunlight into energy via photosynthesis. \u2022 Consumers: Animals that eat plants (herbivores) or other animals (carnivores). \u2022 Decomposers: Fungi and bacteria that break down dead matter (turning it back into the soil/silt we discussed earlier) to be used again by plants. Energy Flow and the 10% Rule Energy enters an ecosystem primarily through solar radiation, which is harvested by plants (producers) and converted into biomass via photosynthesis. \u2022 Net Primary Productivity (NPP): This is the rate at which plants store energy as biomass. It is measured using various techniques like the harvest method, CO2 sensors, or even satellite imagery for large forest canopies. \u2022 The 10% Law: As energy moves up through tro",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": ", or even satellite imagery for large forest canopies. \u2022 The 10% Law: As energy moves up through trophic levels (producers \u2192 primary consumers \u2192 secondary consumers \u2192 tertiary consumers), only about 10% of the energy is transferred to the next level. \u2022 Ecological Efficiency: This efficiency reflects how much biomass is stored at one level compared to the energy intake. Energy is \"lost\" to the environment through respiration, excretion, and undigested waste. 2. Levels of Ecological Organization Life is organized in a hierarchical structure that ecology specifically focuses on from the individual level upward. \u2022 Organism: A single individual (e.g., a blackbuck) \u2022 Population: A group of individuals of the same species living in a specific area. \u2022 Community: Different populations of various sp",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": "uals of the same species living in a specific area. \u2022 Community: Different populations of various species coexisting in the same place. \u2022 Ecosystem: A community interacting with its nonliving environment (matter and energy). These often lack rigid boundaries and merge through ecotones (buffer zones). \u2022 Biosphere: The global sum of all ecosystems where life exists across air, water, and soil. 3. The Concept of the Ecological Niche A \"niche\" describes the specific role and unique position a species holds within an ecosystem. \u2022 Niche vs. Habitat: While a habitat is where a species lives, a niche is its \"trade\" or \"job\". \u2022 Competitive Exclusion Principle: Two species with nearly identical food habits cannot coexist in the same niche for long; one will eventually outcompete the other. \u2022 Functio",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": "abits cannot coexist in the same niche for long; one will eventually outcompete the other. \u2022 Functional Niche: For example, a sunbird\u2019s niche includes gathering nectar and aiding in plant pollination. Ecological Succession The slow and predictable process through which a biological community's structure changes over time is known as ecological succession. It is the process where a community is replaced by a \"better competitor\" species as environmental conditions change. Two primary categories of succession exist: The Seral Stages: Pioneer Species: The first organisms to inhabit a barren area. They are often \"undemanding\" and can survive harsh, nutrient-poor conditions. Transition Communities: The intermediate stages between the pioneer species and the climax stage. Each stage is called a \"",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": ": The intermediate stages between the pioneer species and the climax stage. Each stage is called a \"sere\". Climax Community: The final, stable stage of succession that remains relatively unchanged unless a major disturbance occurs. Types of Succession Based on Site Condition: Primary Succession: Starts in an area where no life previously existed (e.g., bare rock, new volcanic islands). It is a very slow process. Secondary Succession: Occurs in areas where a previous community was destroyed (e.g., by fire or flood) but the soil remains. This process is much faster Based on Environment: Hydrosere (Water), Lithosere (Rock), Psammosere (Sand), and Halosere (Saline soil). Based on Nutrition: Autotrophic Succession: Begins with green plants (producers). Dominated by green plants most of the succ",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": "trophic Succession: Begins with green plants (producers). Dominated by green plants most of the succession are the example of autotropic succession, in autotropic succession initially inorganic environment is present. Heterotrophic Succession: Begins with bacteria and fungi feeding on dead organic matter; biodiversity often decreases over time in this model. Based on Cause: Autogenic: The community itself changes the environment (e.g., changing soil pH), making it unsuitable for itself but better for the next stage. Allogenic: External factors like human activity or climate change drive the replacement. Biodiversity is defined as the variety and variability among living organisms from all sources, including terrestrial, marine, and other aquatic ecosystems. It is fundamentally the \"variety",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": "urces, including terrestrial, marine, and other aquatic ecosystems. It is fundamentally the \"variety of life\" and is analyzed at three distinct levels: Biodiversity Levels \u2022 Genetic diversity: Variation of genes within a single species This enables species to adjust to changes in the climate or diseases. \u2022 Species diversity: The variety of species found in a given area is known as species diversity. Compared to a desert, a tropical rainforest has a higher species diversity. \u2022 Ecosystem diversity: refers to the range of ecological processes and habitats. Hotspots of biodiversity: Regions with high levels of species richness and significant threats to habitat, these hotspots covering 2.3% of the total world\u2019s land area are found to have about 50% of the terrestrial biodiversity. Major threat",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": "he total world\u2019s land area are found to have about 50% of the terrestrial biodiversity. Major threats to biodiversity 1. Loss of Habitat This is the single greatest threat to biodiversity. As human populations expand, natural landscapes are converted for agriculture, urban development, and infrastructure. 2. Invasive Alien Species When a non-native species is introduced (intentionally or accidentally) into a new environment, it may lack natural predators 3. Population Growth and Over-exploitation The sheer number of humans drives the demand for resources. When we harvest a species faster than it can reproduce, it faces extinction. \u2022 Overfishing: Modern industrial fishing has depleted 90% of the world\u2019s large predatory fish. \u2022 Poaching: The illegal trade of rhino horns, elephant ivory, and ",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": "the world\u2019s large predatory fish. \u2022 Poaching: The illegal trade of rhino horns, elephant ivory, and tiger parts continues to push these \"charismatic megafauna\" toward the brink. 4. Pollution Pollution changes the chemical and physical makeup of habitats, making them uninhabitable for sensitive species. \u2022 Nutrient Pollution: Excess fertilizers cause Eutrophication, leading to \"dead zones\" in lakes and oceans where no oxygen exists for fish to breathe. \u2022 Biomagnification: Toxic chemicals (like mercury or DDT) increase in concentration as they move up the food chain, severely affecting top predators. 5. Climate Change Global warming is shifting the \"climate envelopes\" of species faster than many can migrate or adapt. \u2022 Ocean Acidification: Increased CO2 absorbed by oceans makes water more aci",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": "y can migrate or adapt. \u2022 Ocean Acidification: Increased CO2 absorbed by oceans makes water more acidic, dissolving the calcium carbonate shells of corals and mollusks. \u2022 Loss of Seasonal Timing: Climate change disrupts the timing of migration and flowering (phenology). For example, birds may arrive at breeding grounds before their insect food source has emerged. Biodiversity conservation Strategies To combat these threats, two main conservation methods are discussed: \u2022 In-Situ Conservation: Protecting species within their natural habitat (e.g., Biosphere Reserves, National Parks, and Wildlife Sanctuaries). \u2022 Ex-Situ Conservation: Moving species out of their original habitat to nurture them elsewhere (e.g., Gene Banks, Seed Banks, Zoos, and Botanical Gardens). Effect of human activities on",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
+  },
+  {
+    "text": "elsewhere (e.g., Gene Banks, Seed Banks, Zoos, and Botanical Gardens). Effect of human activities on agriculture, housing, industry, mining and transportation activities from the notes",
+    "source": "UNIT-1.pdf",
+    "kind": "document",
+    "upload_id": "3f46dcd2-3d2e-4383-bc02-1848d0a993fd",
+    "user_id": "43489bbd9cf64a9c923017db8a244011",
+    "path": "/Users/anubhavrathore0910/Documents/New project/AegisAI/storage/uploads/355ed379e78274c2.pdf"
   }
 ]
